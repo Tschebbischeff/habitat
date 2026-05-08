@@ -1,0 +1,37 @@
+name: habitat-deploy
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "172.31.0.0/16"
+
+volumes:
+  habitat-modules:
+    # Ensures the user must have created the bind folder before it is used, default UID and GID are inferred from this mount
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: '${MODULE_DEPLOY_PATH:?}'
+
+services:
+
+  habitat:
+    build:
+      context: ./habitat-deploy
+    pull_policy: build
+    container_name: habitat
+    env_file:
+      - path: "${MODULE_ENV_FILE}"
+        required: false
+    environment:
+      MODULE_DEPLOY_PATH: "${MODULE_DEPLOY_PATH:?}"
+      MODULE_LIST: "${MODULE_LIST:?}"
+      UPDATE_MODULES: "${UPDATE_MODULES:-yes}"
+      UID: "${RUN_AS_USER}"
+      GID: "${RUN_AS_GROUP}"
+    volumes:
+      - habitat-modules:${MODULE_DEPLOY_PATH:?}
+      - /var/run/docker.sock:/var/run/docker.sock
