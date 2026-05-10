@@ -88,8 +88,6 @@ docker compose up
 
 The application is designed to be controlled exclusively with environment variables and secrets.
 
-All secrets are expected to be files within a single folder. This folder can be set via environment variable (`SECRETS_DIR`) itself and defaults to `./.secrets` (git-ignored folder).
-
  - [List of environment variables](#environment-variables-for-deployment)
  - [List of secrets](#secrets)
 
@@ -208,8 +206,10 @@ HABITAT_MODULE_PATH_FOO="bar"
 *The deployment container does not require any secrets, refer to the documentation of the modules you want to deploy for additional secrets that might be needed.*
 
 <!--
-The following secrets must exist within the `SECRETS_DIR` directory at build-time, otherwise running the stack will fail.
-They are expected to be files with the secret value being the content of the file.
+> [!NOTE]
+> All secrets are expected to be files within a single folder, each file containing the value of the secret. \
+> This folder can be set via environment variable (`SECRETS_DIR`) itself and defaults to `./.secrets` (git-ignored folder). \
+> All secrets must be present at run-time.
 
 | (File) Name | Description | Documentation / How to Obtain |
 | :-- | :-- | :-- |
