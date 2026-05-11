@@ -165,7 +165,7 @@ At build-time Docker requires the following environment variables to be populate
 | Name | Description | Example | Default |
 | :-- | :-- | :-- | :-- |
 | `MODULE_DEPLOY_PATH` | An absolute path to clone the selected modules to. Must be absolute, so that path matching works correctly between the Host and the deployment container. | `/foo/bar/habitat-modules` | `$PWD/habitat-modules` |
-| `MODULE_LIST` | A comma separated list of module names that are started in the same docker namespace (same project name) as this module. | `path,scent,vista,chatter,hoard,vigil,sight` | `path,scent,vista` |
+| `MODULE_LIST` | A comma separated list of module names that are started in the same docker namespace (same project name) as this module. | `path,thicket,stash,vista` | `path,scent,vista` |
 | `MODULE_ENV_FILE` | Path to an env-file containing variables that should be passed to modules. | `/foo/bar/module-config.env` | `./_.env` |
 | `RUN_AS_USER` | UID to run the deployment container as. If empty, the UID is inferred from the `MODULE_DEPLOY_PATH` volume. | `1000` | *Empty* |
 | `RUN_AS_GROUP` | GID to run the deployment container as. If empty, the GID is inferred from the `MODULE_DEPLOY_PATH` volume. | `100` | *Empty* |
