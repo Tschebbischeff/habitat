@@ -24,10 +24,14 @@ Each of the modules is designed as an opinionated docker stack that can be deplo
  Message queue for realtime communication between modules
  - **[Hoard](https://github.com/Tschebbischeff/habitat-hoard)** \
  Time-series database and persistent storage
+ - **[Thicket](https://github.com/Tschebbischeff/habitat-thicket)** \
+ Relational database
  - **[Vigil](https://github.com/Tschebbischeff/habitat-vigil)** \
  Device monitoring, visualization and alerting
  - **[Sight](https://github.com/Tschebbischeff/habitat-sight)** \
  Real-time video streaming
+ - **[Stash](https://github.com/Tschebbischeff/habitat-sight)** \
+ Nextcloud
 
 ## Our Principles
 
@@ -91,7 +95,7 @@ The application is designed to be controlled exclusively with environment variab
  - [List of environment variables](#environment-variables-for-deployment)
  - [List of secrets](#secrets)
 
-#### Deployment Environment Variables
+#### Deployment Variables
 
 The existing [.env](./.env) file contains defaults for the environment variables necessary at build-time and is designed to let you overwrite any of those environment variables via exports from your shell before running the application.
 
@@ -172,7 +176,7 @@ The module list supports the following formats:
  - Short form for GitHub repositories (e.g.: `Tschebbischeff/habitat-path`)
  - Short form official module name (e.g. `habitat-path`, `path`)
 
-#### Environment Variables for Modules
+### Environment Variables for Modules
 
 The following environment variables will be generated and passed to all modules automatically:
 
@@ -200,6 +204,23 @@ HABITAT_MODULE_PATH_FOO="bar"
 
 > [!WARNING]
 > These definitions do not override the automatic generation performed by the deployment container.
+
+The following environment variables are commonly used by all modules and can be overriden for all or some of the modules with the above prefixes:
+
+| Name | Description | Example | Default |
+| :-- | :-- | :-- | :-- |
+| `APP_HOST` | The main URL the device will be reachable at. | `my-habitat.example.com` | *Empty* |
+| `APP_MODULES` | A comma separated list of module names that are started in the same docker namespace (same project name) as this module. | `path,scent,vista` | *Empty* |
+| `APP_SESSION_ID` | A session ID used for synchronization of configuration between modules, should change every time all modules are restarted in unison and remain unchanged if a single module is restarted without being updated. | `$(cat /proc/sys/kernel/random/uuid)` | *Empty* |
+| `APP_NETWORK_POOL` | The pool of IP addresses for the module containers, must match pool of all other modules in the same application. | `172.19.0.0/16` | `172.18.0.0/16` |
+| `APP_NAME_HOST` | The prefix for all docker networks and containers, that this application will create. Also used as the internal hostname within all containers. | `my-habitat` | `habitat` |
+| `APP_NAME_LABEL` | The human readable name of the device. | `My Habitat` | `Habitat` |
+| `TIMEZONE` | Timezone identifier passed on to containers. | `Europe/Paris` | `Europe/Berlin` |
+| `VOLUME_DIR` | The directory in which [bind mounts](https://docs.docker.com/engine/storage/bind-mounts/) are placed *(Currently only named volumes are used)*. | `/path/to/my/volumes` | `./volumes` |
+| `ENV_DIR` | The directory in which .env files for containers can be placed to override the default runtime config. | `/path/to/my/env` | `./env.d` |
+| `SECRETS_DIR` | The directory in which files containing secrets for containers are placed. | `/run/secret` | `./secrets` |
+
+For additional environment variables check out the documentation of the specific module.
 
 ### Secrets
 
