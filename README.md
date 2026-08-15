@@ -65,6 +65,7 @@ Each of the modules is designed as an opinionated docker stack that can be deplo
 This repository deploys a list of habitat modules on the host via Docker-outside-of-Docker.
 
 ### Planned
+
  - **Private Git Repositories** \
  Cloning modules from private repositories
 
