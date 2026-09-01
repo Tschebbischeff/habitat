@@ -75,8 +75,8 @@ prepEnvironment() {
     done < <(env -0)
     while IFS='=' read -r -d '' n v; do
         if echo "$n" | grep -q '^HABITAT_MODULE_'; then
-            if echo "$n" | grep -q "^HABITAT_MODULE_${moduleNameUpper^^}_"; then
-                export "${n#"HABITAT_MODULE_${moduleNameUpper^^}_"}"="$v"
+            if echo "$n" | grep -q "^HABITAT_MODULE_${moduleNameUpper}_"; then
+                export "${n#"HABITAT_MODULE_${moduleNameUpper}_"}"="$v"
             fi
             unset -v "$n"
         fi
