@@ -84,6 +84,7 @@ echo "Fixing permissions on /habitat-deploy"
 
 # Export additional variables
 export DOCKER_CONFIG="/tmp/.docker"
+export COMPOSE_BAKE="true"
 
 # Drop privileges and run
 echo "Dropping privileges and executing CMD..."
