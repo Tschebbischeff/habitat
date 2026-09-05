@@ -2,9 +2,13 @@
 
 echo "Habitat Deploy Entrypoint"
 
+UID="$RUN_AS_USER"
+GID="$RUN_AS_GROUP"
 SOCKET_GID="$(stat -c '%g' "/var/run/docker.sock")"
+
 [ -z "$UID" ] && UID="$(stat -c '%u' "$MODULE_DEPLOY_PATH")"
 [ -z "$GID" ] && GID="$(stat -c '%g' "$MODULE_DEPLOY_PATH")"
+
 GROUP_NAME_DOCKER="docker_host"
 GROUP_NAME="habitat"
 USER_NAME="habitat"

@@ -1,11 +1,11 @@
-name: ${PROJECT_NAME}
+name: ${PROJECT_NAME:?}
 
 networks:
   default:
     driver: bridge
     ipam:
       config:
-        - subnet: "${NETWORK_POOL}"
+        - subnet: "${NETWORK_POOL:?}"
 
 volumes:
   habitat-modules:
@@ -21,16 +21,12 @@ services:
   habitat:
     build:
       context: ./habitat-deploy
-    container_name: ${PROJECT_NAME}_habitat
+    container_name: ${PROJECT_NAME:?}_habitat
     env_file:
-      - path: "${MODULE_ENV_FILE}"
+      - path: "./.env"
+        required: true
+      - path: "${MODULE_ENV_FILE:?}"
         required: false
-    environment:
-      MODULE_DEPLOY_PATH: "${MODULE_DEPLOY_PATH:?}"
-      MODULE_LIST: "${MODULE_LIST:?}"
-      UPDATE_MODULES: "${UPDATE_MODULES:-yes}"
-      UID: "${RUN_AS_USER}"
-      GID: "${RUN_AS_GROUP}"
     volumes:
       - habitat-modules:${MODULE_DEPLOY_PATH:?}
       - /var/run/docker.sock:/var/run/docker.sock
