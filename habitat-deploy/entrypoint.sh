@@ -9,9 +9,6 @@ GROUP_NAME_DOCKER="docker_host"
 GROUP_NAME="habitat"
 USER_NAME="habitat"
 
-echo "UID: $UID"
-echo "GID: $GID"
-
 # Create groups and users
 echo "Checking groups and users..."
 echo "Group '$GROUP_NAME_DOCKER' (GID: $SOCKET_GID):"
