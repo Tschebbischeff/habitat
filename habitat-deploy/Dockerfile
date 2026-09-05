@@ -1,6 +1,6 @@
 FROM alpine
 
-RUN apk -U add gosu bash git grep docker docker-cli-compose
+RUN apk -U add gosu bash git grep docker docker-cli-compose docker-cli-buildx
 
 RUN mkdir -p "/habitat-deploy"
 COPY ./entrypoint.sh /habitat-deploy/entrypoint.sh

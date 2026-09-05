@@ -82,6 +82,9 @@ echo "Fixing permissions on /habitat-deploy"
     exit 5
 }
 
+# Export additional variables
+export DOCKER_CONFIG="/tmp/.docker"
+
 # Drop privileges and run
 echo "Dropping privileges and executing CMD..."
 exec gosu "$USER_NAME" "$@"
