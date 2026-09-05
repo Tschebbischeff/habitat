@@ -14,12 +14,12 @@ echo "Checking groups and users..."
 echo "Group '$GROUP_NAME_DOCKER' (GID: $SOCKET_GID):"
 {
     getent group "$GROUP_NAME_DOCKER" &>/dev/null && \
-    echo " Exists"
+    echo " Exists => $(getent group "${GROUP_NAME_DOCKER}")"
 } || {
     echo " Creating"
     {
         addgroup -g "${SOCKET_GID}" "$GROUP_NAME_DOCKER" && \
-        echo " Success"
+        echo " Success => $(getent group "${GROUP_NAME_DOCKER}")"
     } || {
         echo " Failed"
         exit 1
@@ -28,12 +28,12 @@ echo "Group '$GROUP_NAME_DOCKER' (GID: $SOCKET_GID):"
 echo "Group '$GROUP_NAME' (GID: $GID):"
 {
     getent group "${GID}" &>/dev/null && \
-    echo " Exists"
+    echo " Exists => $(getent group "${GID}")"
 } || {
     echo " Creating"
     {
         addgroup -g "${GID}" "$GROUP_NAME" && \
-        echo " Success"
+        echo " Success => $(getent group "${GID}")"
     } || {
         echo " Failed"
         exit 2
@@ -42,12 +42,12 @@ echo "Group '$GROUP_NAME' (GID: $GID):"
 echo "User '$USER_NAME' (UID: $UID):"
 {
     getent passwd "${UID}" &>/dev/null && \
-    echo " Exists"
+    echo " Exists => $(getent passwd "${UID}")"
 } || {
     echo " Creating"
     {
         adduser -u "${UID}" -g "$USER_NAME" -D -H "$USER_NAME" -G "$GROUP_NAME" && \
-        echo " Success"
+        echo " Success => $(getent passwd "${UID}")"
     } || {
         echo " Failed"
         exit 3
@@ -56,7 +56,7 @@ echo "User '$USER_NAME' (UID: $UID):"
 echo "Add user '$USER_NAME' (UID: $UID) to group '$GROUP_NAME_DOCKER' (GID: $GID):"
 {
     addgroup "$USER_NAME" docker_host && \
-    echo " Success"
+    echo " Success => $(getent passwd "${UID}")"
 } || {
     echo " Failed"
     exit 4
