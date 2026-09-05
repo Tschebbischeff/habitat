@@ -21,7 +21,6 @@ services:
   habitat:
     build:
       context: ./habitat-deploy
-    pull_policy: build
     container_name: ${PROJECT_NAME}_habitat
     env_file:
       - path: "${MODULE_ENV_FILE}"
