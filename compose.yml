@@ -23,8 +23,7 @@ services:
       context: ./habitat-deploy
     container_name: ${PROJECT_NAME:?}_habitat
     env_file:
-      - path: "./.env"
-        required: true
+      - ./.env
       - path: "${MODULE_ENV_FILE:?}"
         required: false
     volumes:
