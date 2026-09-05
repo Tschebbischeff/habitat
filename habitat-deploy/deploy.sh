@@ -92,6 +92,7 @@ prepEnvironment() {
     unset "RUN_AS_GROUP"
     unset "UPDATE_MODULES"
     unset "UPGRADE_MODULES"
+    unset "UPGRADE_MODULES_SEQUENTIAL"
 }
 
 # shellcheck disable=SC2329 # Is used in trap
@@ -116,6 +117,7 @@ killApp() {
 
 # Pull and build in parallel, then wait for all
 if [ "$UPGRADE_MODULES" == "yes" ]; then
+    allSuccess="_"
     for moduleDir in "${MODULE_DIRS[@]}"; do
         (
             moduleName="${moduleDir##habitat-}"
@@ -132,8 +134,14 @@ if [ "$UPGRADE_MODULES" == "yes" ]; then
                 build
             fi
         ) &
+        jobPID="$!"
+        if [ "$UPGRADE_MODULES_SEQUENTIAL" == "yes" ]; then
+            wait "$jobPID" || {
+                allSuccess=""
+                break
+            }
+        fi
     done
-    allSuccess="_"
     # shellcheck disable=SC2046 # Word splitting intentional
     for jobPID in $(jobs -p); do
         wait "$jobPID" || allSuccess=""
