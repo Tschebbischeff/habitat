@@ -2,12 +2,10 @@
 
 echo "Habitat Deploy Entrypoint"
 
-UID="$RUN_AS_USER"
-GID="$RUN_AS_GROUP"
 SOCKET_GID="$(stat -c '%g' "/var/run/docker.sock")"
 
-[ -z "$UID" ] && UID="$(stat -c '%u' "$MODULE_DEPLOY_PATH")"
-[ -z "$GID" ] && GID="$(stat -c '%g' "$MODULE_DEPLOY_PATH")"
+[ -z "$RUN_AS_USER" ] && RUN_AS_USER="$(stat -c '%u' "$MODULE_DEPLOY_PATH")"
+[ -z "$RUN_AS_GROUP" ] && RUN_AS_GROUP="$(stat -c '%g' "$MODULE_DEPLOY_PATH")"
 
 GROUP_NAME_DOCKER="docker_host"
 GROUP_NAME="habitat"
@@ -18,7 +16,7 @@ echo "Checking groups and users..."
 echo "Group '$GROUP_NAME_DOCKER' (GID: $SOCKET_GID):"
 {
     getent group "$SOCKET_GID" &>/dev/null && \
-    GROUP_NAME_DOCKER="$(getent group "${GID}" | cut -d: -f1)" && \
+    GROUP_NAME_DOCKER="$(getent group "${SOCKET_GID}" | cut -d: -f1)" && \
     echo " Exists as '$GROUP_NAME_DOCKER'"
 } || {
     echo " Creating"
@@ -30,37 +28,37 @@ echo "Group '$GROUP_NAME_DOCKER' (GID: $SOCKET_GID):"
         exit 1
     }
 }
-echo "Group '$GROUP_NAME' (GID: $GID):"
+echo "Group '$GROUP_NAME' (GID: $RUN_AS_GROUP):"
 {
-    getent group "${GID}" &>/dev/null && \
-    GROUP_NAME="$(getent group "${GID}" | cut -d: -f1)" && \
+    getent group "${RUN_AS_GROUP}" &>/dev/null && \
+    GROUP_NAME="$(getent group "${RUN_AS_GROUP}" | cut -d: -f1)" && \
     echo " Exists as '$GROUP_NAME'"
 } || {
     echo " Creating"
     {
-        addgroup -g "${GID}" "$GROUP_NAME" && \
+        addgroup -g "${RUN_AS_GROUP}" "$GROUP_NAME" && \
         echo " Success"
     } || {
         echo " Failed"
         exit 2
     }
 }
-echo "User '$USER_NAME' (UID: $UID):"
+echo "User '$USER_NAME' (UID: $RUN_AS_USER):"
 {
-    getent passwd "${UID}" &>/dev/null && \
-    USER_NAME="$(getent passwd "${UID}" | cut -d: -f1)" && \
+    getent passwd "${RUN_AS_USER}" &>/dev/null && \
+    USER_NAME="$(getent passwd "${RUN_AS_USER}" | cut -d: -f1)" && \
     echo " Exists as '$USER_NAME'"
 } || {
     echo " Creating"
     {
-        adduser -u "${UID}" -g "$USER_NAME" -D -H "$USER_NAME" -G "$GROUP_NAME" && \
+        adduser -u "${RUN_AS_USER}" -g "$USER_NAME" -D -H "$USER_NAME" -G "$GROUP_NAME" && \
         echo " Success"
     } || {
         echo " Failed"
         exit 3
     }
 }
-echo "Add user '$USER_NAME' (UID: $UID) to group '$GROUP_NAME_DOCKER' (GID: $SOCKET_GID):"
+echo "Add user '$USER_NAME' (UID: $RUN_AS_USER) to group '$GROUP_NAME_DOCKER' (GID: $SOCKET_GID):"
 {
     getent group "${SOCKET_GID}" | cut -d: -f4 | grep -Pq '(^|,)'"$USER_NAME"'(,|$)' && \
     echo " Already assigned"
@@ -77,7 +75,7 @@ echo "Add user '$USER_NAME' (UID: $UID) to group '$GROUP_NAME_DOCKER' (GID: $SOC
 # Fix permissions
 echo "Fixing permissions on /habitat-deploy"
 {
-    chown -R "${UID}:${GID}" "/habitat-deploy" && \
+    chown -R "${RUN_AS_USER}:${RUN_AS_GROUP}" "/habitat-deploy" && \
     echo " Success"
 } || {
     echo " Failed"
