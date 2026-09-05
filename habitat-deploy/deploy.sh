@@ -25,11 +25,12 @@ for moduleId in "${tmp_modules[@]}"; do
             moduleRepoUrl="https://github.com/Tschebbischeff/$moduleRepoUrl.git"
         fi
     fi
-    { [ -n "$HABITAT_APP_MODULES" ] && HABITAT_APP_MODULES="$HABITAT_APP_MODULES,$moduleShortName"; } ||
-    HABITAT_APP_MODULES="$HABITAT_APP_MODULES$moduleShortName"
+    {
+        [ -n "$HABITAT_APP_MODULES" ] && \
+        HABITAT_APP_MODULES="$HABITAT_APP_MODULES,$moduleShortName"
+    } ||
+        HABITAT_APP_MODULES="$HABITAT_APP_MODULES$moduleShortName"
     MODULE_REPOS["${#MODULE_REPOS[@]}"]="$moduleRepoUrl"
-    # Clone modules
-    # git clone "$moduleRepoUrl"
 done
 # shellcheck disable=SC2034 # exported variable is used in prepEnvironment function
 HABITAT_APP_SESSION_ID="$(cat "/proc/sys/kernel/random/uuid")"
@@ -65,6 +66,7 @@ done
 # ### Start the stack
 
 prepEnvironment() {
+    # Side-effects will modify environment, only call in subshell
     local moduleNameUpper="${1^^}"
     while IFS='=' read -r -d '' n v; do
         if echo "$n" | grep -q '^HABITAT_'; then
@@ -81,12 +83,15 @@ prepEnvironment() {
             unset -v "$n"
         fi
     done < <(env -0)
+    unset "PROJECT_NAME"
     unset "MODULE_DEPLOY_PATH"
     unset "MODULE_LIST"
     unset "MODULE_ENV_FILE"
-    unset "UID"
-    unset "GID"
+    unset "NETWORK_POOL"
+    unset "RUN_AS_USER"
+    unset "RUN_AS_GROUP"
     unset "UPDATE_MODULES"
+    unset "UPGRADE_MODULES"
 }
 
 # shellcheck disable=SC2329 # Is used in trap
@@ -94,11 +99,13 @@ killApp() {
     trap '' SIGTERM
     echo "Stop signal received, stopping all modules..."
     for moduleDir in "${MODULE_DIRS[@]}"; do
-        moduleName="${moduleDir##habitat-}"
-        echo "Stopping '$moduleName' ..."
         (
+            moduleName="${moduleDir##habitat-}"
             prepEnvironment "$moduleName"
-            docker compose -f "./$moduleDir/compose.yml" down &>/dev/null
+            echo "Stopping '$moduleName' ..."
+            docker compose \
+                -f "./$moduleDir/compose.yml" \
+            down &>/dev/null
         ) &
     done
     # shellcheck disable=SC2046 # Word splitting intentional
@@ -107,35 +114,64 @@ killApp() {
     exit 0
 }
 
-no_container_logs() {
-    local attached=""
-    while read -r line; do
-        [ -z "$attached" ] && echo "$line"
-        echo "$line" | grep -Pq "^Attaching to.*$" && attached="_"
-    done
-}
-
 # Pull and build in parallel, then wait for all
-for moduleDir in "${MODULE_DIRS[@]}"; do
-    moduleName="${moduleDir##habitat-}"
-    echo "Pulling and building latest images for '$moduleName' ..."
-    (
-        prepEnvironment "$moduleName"
-        docker compose -f "./$moduleDir/compose.yml" pull
-        docker compose -f "./$moduleDir/compose.yml" build
-    ) &
-done
-# shellcheck disable=SC2046 # Word splitting intentional
-wait $(jobs -p)
+if [ "$UPGRADE_MODULES" == "yes" ]; then
+    for moduleDir in "${MODULE_DIRS[@]}"; do
+        (
+            moduleName="${moduleDir##habitat-}"
+            prepEnvironment "$moduleName"
+            echo "Pulling latest images for '$moduleName'..."
+            if docker compose \
+                -f "./$moduleDir/compose.yml" \
+                --progress plain \
+            pull; then
+                echo "Building '$moduleName'..."
+                docker compose \
+                    -f "./$moduleDir/compose.yml" \
+                    --progress plain \
+                build
+            fi
+        ) &
+    done
+    allSuccess="_"
+    # shellcheck disable=SC2046 # Word splitting intentional
+    for jobPID in $(jobs -p); do
+        wait "$jobPID" || allSuccess=""
+    done
+    [ -n "$allSuccess" ] || {
+        echo "Some pull and/ or build operations failed, see logs above."
+        exit 1
+    }
+else
+    echo "Not pulling or building any images, set UPGRADE_MODULES to 'yes' to enable."
+fi
 
 # Start in parallel, then wait for all, when killed kill all
 trap killApp SIGTERM
 for moduleDir in "${MODULE_DIRS[@]}"; do
-    moduleName="${moduleDir##habitat-}"
-    echo "Starting '$moduleName' ..."
     (
+        moduleName="${moduleDir##habitat-}"
         prepEnvironment "$moduleName"
-        docker compose -f "./$moduleDir/compose.yml" up 2>&1 | no_container_logs || exit 0 # Ignore command failure for when the container is stopped
+        echo "Starting '$moduleName' ..."
+        if ! docker compose \
+            -f "./$moduleDir/compose.yml" \
+            --progress plain \
+        up \
+            -d
+        then
+            exit 1
+        fi
+        echo "Waiting for '$moduleName' to exit..."
+        # shellcheck disable=SC2046 # Word splitting intentional
+        docker compose \
+            -f "./$moduleDir/compose.yml" \
+            --progress plain \
+        wait $(
+            docker compose \
+                -f "./$moduleDir/compose.yml" \
+                --progress plain \
+            config --services
+        )
     ) &
 done
 # shellcheck disable=SC2046 # Word splitting intentional
