@@ -139,8 +139,9 @@ for moduleName in "${!MODULE_DIRS[@]}"; do
     (
         moduleDir="${MODULE_DIRS[$moduleName]}"
         moduleUpdated="${MODULE_UPDATED[$moduleName]}"
+        upgradeModules="$UPGRADE_MODULES"
         prepEnvironment "$moduleName"
-        [ "$UPGRADE_MODULES" == "yes" ] \
+        [ "$upgradeModules" == "yes" ] \
             && echo "Pulling latest images for '$moduleName'..." \
             || echo "Pulling missing images for '$moduleName'..."
         imageHashesBefore="$(
@@ -155,7 +156,7 @@ for moduleName in "${!MODULE_DIRS[@]}"; do
             -f "./$moduleDir/compose.yml" \
             --progress plain \
         pull \
-            --policy "$([ "$UPGRADE_MODULES" == "yes" ] && echo "always" || echo "missing")"
+            --policy "$([ "$upgradeModules" == "yes" ] && echo "always" || echo "missing")"
         then
             imageHashesAfter="$(
                 docker compose \
