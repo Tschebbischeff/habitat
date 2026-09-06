@@ -6,7 +6,7 @@ set -euo pipefail
 
 cd "$MODULE_DEPLOY_PATH"
 STATUS_FILE="$1"; shift
-[ -f "$STATUS_FILE" ] && [ -x "$STATUS_FILE" ] || exit 1
+[ -f "$STATUS_FILE" ] || exit 1
 
 declare -A MODULE_REPOS
 declare -A MODULE_DIRS
