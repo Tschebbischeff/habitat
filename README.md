@@ -60,6 +60,13 @@ Each of the modules is designed as an opinionated docker stack that can be deplo
 
 ![TODO](https://img.shields.io/badge/TODO-Coming_Soon_(TM)-red?style=flat)
 
+<!--
+
+ - Single Sign-On \
+   Only one account for the whole stack
+
+-->
+
 ## Features
 
 This repository deploys a list of habitat modules on the host via Docker-outside-of-Docker.
@@ -93,6 +100,8 @@ cat <<EOF >".env"
 # Compose configuration
 COMPOSE_FILE="$PWD/habitat-deploy/compose.yml"
 # Deployment configuration
+PROJECT_NAME="habitat-deploy"
+NETWORK_POOL="172.31.0.0/16"
 MODULE_DEPLOY_PATH="\$PWD/habitat-modules"
 MODULE_LIST="path,scent,vista" # Add your desired modules
 MODULE_ENV_FILE="\$PWD/.env"
@@ -154,12 +163,18 @@ Optionally, you can also define the environment variables required by the deploy
 You will need to instruct docker compose to use the same file for interpolation of variables inside the compose.yml via the `--env-file` argument. \
 I.e.: `docker compose --env-file "/path/to/habitat-config.env" up -d`
 
+> [!WARNING]
+> The .env file in the repository root will still provide default values for use within the deployment container, but not for variable interpolation inside the compose file!
+> Therefore you will need to **explicitly redefine** any variables that are needed at build-time within your custom env file.
+
 *Example:*
 ```sh
 # /path/to/habitat-config.env
+PROJECT_NAME="habitat-deploy"
+NETWORK_POOL="172.31.0.0/16"
 MODULE_DEPLOY_PATH="$PWD/habitat-modules"
 MODULE_LIST="path,scent,vista"
-MODULE_ENV_FILE="/path/to/habitat-config.env"
+MODULE_ENV_FILE="/path/to/habitat-config.env" # This is required to be a full path to this file so environment variables are correctly passed into the deployment container
 HABITAT_APP_HOST="my-habitat.example.com"
 HABITAT_APP_NAME_LABEL="MyHabitat"
 HABITAT_TIMEZONE="Europe/Madrid"
@@ -184,16 +199,25 @@ HABITAT_SECRETS_DIR="/run/secrets"
 
 ### Environment Variables for Deployment
 
-At build-time Docker requires the following environment variables to be populated:
+At **build-time** the deployment project requires the following environment variables to be populated:
 
 | Name | Description | Example | Default |
 | :-- | :-- | :-- | :-- |
+| `PROJECT_NAME` | The project name to prefix any docker resources with (only applies to resources from the deployment project, see `APP_NAME_HOST` to define the prefix for modules). | `my-habitat` | `habitat-deploy` |
+| `NETWORK_POOL` | The IP range in CIDR notation for the default network used by deployment containers. | `172.32.0.0/16` | `172.31.0.0/16` |
 | `MODULE_DEPLOY_PATH` | An absolute path to clone the selected modules to. Must be absolute, so that path matching works correctly between the Host and the deployment container. | `/foo/bar/habitat-modules` | `$PWD/habitat-modules` |
 | `MODULE_LIST` | A comma separated list of module names that are started in the same docker namespace (same project name) as this module. | `path,thicket,stash,vista` | `path,scent,vista` |
 | `MODULE_ENV_FILE` | Path to an env-file containing variables that should be passed to modules. | `/foo/bar/module-config.env` | `./_.env` |
+
+At **run-time** the deployment container additionally requires the following environment variables:
+
+| Name | Description | Example | Default |
+| :-- | :-- | :-- | :-- |
 | `RUN_AS_USER` | UID to run the deployment container as. If empty, the UID is inferred from the `MODULE_DEPLOY_PATH` volume. | `1000` | *Empty* |
 | `RUN_AS_GROUP` | GID to run the deployment container as. If empty, the GID is inferred from the `MODULE_DEPLOY_PATH` volume. | `100` | *Empty* |
-| `UPDATE_MODULES` | Whether to update all modules before starting. | `no` | `yes` |
+| `UPDATE_MODULES` | Whether to update module repositories before starting. | `no` | `yes` |
+| `UPGRADE_MODULES` | Whether to pull and build the latest images defined by modules before starting. | `no` | `yes` |
+| `UPGRADE_MODULES_SEQUENTIAL` | Whether to pull and build images sequentially instead of in parallel. Has no effect if `UPGRADE_MODULES` is set to `no` | `yes` | `no` |
 
 The module list supports the following formats:
  - Full HTTPS Git repository URL (e.g.: `https://github.com/Tschebbischeff/habitat-path.git`)
@@ -250,6 +274,11 @@ For additional environment variables check out the documentation of the specific
 
 *The deployment container does not require any secrets, refer to the documentation of the modules you want to deploy for additional secrets that might be needed.*
 
+> [!NOTE]
+> The deployment container will report warnings about missing module secrets due to the docker engine checking for their existence from within the deployment container.
+> The secrets will however still be mounted from the host system and a fatal error will abort starting a module if secrets are missing on a host.
+> The warning printed by the deployment container can be ignored.
+
 <!--
 > [!NOTE]
 > All secrets are expected to be files within a single folder, each file containing the value of the secret. \
@@ -265,7 +294,7 @@ For additional environment variables check out the documentation of the specific
 
  - Create a folder `habitat-modules` within the current working directory or within the root directory of the repository
  - Run `docker compose up -d` from the root directory of the repository or from the directory containing your `.env` file
-   - You can run `MODULE_DEPLOY_PATH="$(pwd)/habitat-modules" docker compose up -d` with your choice for `MODULE_DEPLOY_PATH` instead, to define your own location for the modules, **the path must be absolute and exist**
+   - You can run `MODULE_DEPLOY_PATH="$(pwd)/habitat-modules" docker compose up -d` with your choice for `MODULE_DEPLOY_PATH` instead, to define your own location for the modules, **the path must be _absolute_ and _exist at build time_**
    - If modules require environment variables, you must set them appropriately for the deployment container aswell, see the section on supplying [environment variables for modules](#environment-variables-for-modules) for more information
  - Shutting down the resulting `habitat` service will also shut down all of the modules
 
