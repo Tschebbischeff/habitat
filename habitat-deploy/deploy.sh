@@ -2,71 +2,24 @@
 
 set -euo pipefail
 
+# ### Declarations and Definitions
+
 cd "$MODULE_DEPLOY_PATH"
+STATUS_FILE="$1"; shift
+[ -f "$STATUS_FILE" ] && [ -x "$STATUS_FILE" ] || exit 1
 
-# ### Init
+declare -A MODULE_REPOS
+declare -A MODULE_DIRS
+declare -A MODULE_UPDATED
 
-declare -a MODULE_REPOS=()
-declare -a MODULE_DIRS=()
-export HABITAT_APP_MODULES=""
-export HABITAT_APP_SESSION_ID=""
+# ### Functions
 
-IFS="," read -r -a tmp_modules <<< "${MODULE_LIST}"
-for moduleId in "${tmp_modules[@]}"; do
-    moduleRepoUrl="$(echo "$moduleId" | xargs)"
-    moduleShortName="${moduleRepoUrl##*/}"
-    moduleShortName="${moduleShortName%.git}"
-    moduleShortName="${moduleShortName##habitat-}"
-    if echo "$moduleRepoUrl" | grep -Pqv '^https://'; then # No changes if full URL supplied
-        if echo "$moduleRepoUrl" | grep -q '/'; then # User/Org + Repo means GitHub
-            moduleRepoUrl="https://github.com/$moduleRepoUrl.git"
-        else # Short form for official habitat module
-            echo "$moduleRepoUrl" | grep -q '^habitat-' || moduleRepoUrl="habitat-$moduleRepoUrl" # Official modules are always prefixed with 'habitat-', add if necessary
-            moduleRepoUrl="https://github.com/Tschebbischeff/$moduleRepoUrl.git"
-        fi
-    fi
-    {
-        [ -n "$HABITAT_APP_MODULES" ] && \
-        HABITAT_APP_MODULES="$HABITAT_APP_MODULES,$moduleShortName"
-    } ||
-        HABITAT_APP_MODULES="$HABITAT_APP_MODULES$moduleShortName"
-    MODULE_REPOS["${#MODULE_REPOS[@]}"]="$moduleRepoUrl"
-done
-# shellcheck disable=SC2034 # exported variable is used in prepEnvironment function
-HABITAT_APP_SESSION_ID="$(cat "/proc/sys/kernel/random/uuid")"
-
-
-# ### Clone and/or Update modules
-
-for moduleRepoUrl in "${MODULE_REPOS[@]}"; do
-    repoDir="$(basename "$(git ls-remote --get-url "$moduleRepoUrl")" .git)"
-    MODULE_DIRS["${#MODULE_DIRS[@]}"]="$repoDir"
-    if [ -d "$repoDir" ]; then
-        if [ "$UPDATE_MODULES" == "yes" ]; then (
-            cd "$repoDir"
-            git fetch -p -q
-            if [ "$(git rev-list "HEAD..@{u}" --count 2>/dev/null || echo 0)" -eq "0" ]; then
-                echo "No updates for '$repoDir' available."
-            else
-                if [ -n "$(git status --porcelain)" ]; then
-                    echo "WARNING: Workdir dirty, not downloading the available update."
-                else
-                    echo "Downloading update for '$repoDir'..."
-                    git pull
-                fi
-            fi
-        ); fi
-    else
-        echo "Initializing module '$repoDir'..."
-        git clone "$moduleRepoUrl" "$repoDir"
-    fi
-done
-
-
-# ### Start the stack
+setStatus() {
+    echo "$1" >"$STATUS_FILE"
+}
 
 prepEnvironment() {
-    # Side-effects will modify environment, only call in subshell
+    # WARNING: Side-effects will modify environment, only call from within subshell
     local moduleNameUpper="${1^^}"
     while IFS='=' read -r -d '' n v; do
         if echo "$n" | grep -q '^HABITAT_'; then
@@ -98,73 +51,165 @@ prepEnvironment() {
 # shellcheck disable=SC2329 # Is used in trap
 killApp() {
     trap '' SIGTERM
+    setStatus "stopping"
     echo "Stop signal received, stopping all modules..."
-    for moduleDir in "${MODULE_DIRS[@]}"; do
+    for moduleName in "${!MODULE_DIRS[@]}"; do
         (
-            moduleName="${moduleDir##habitat-}"
             prepEnvironment "$moduleName"
             echo "Stopping '$moduleName' ..."
             docker compose \
-                -f "./$moduleDir/compose.yml" \
+                -f "./${MODULE_DIRS[$moduleName]}/compose.yml" \
             down &>/dev/null
         ) &
     done
     # shellcheck disable=SC2046 # Word splitting intentional
     wait $(jobs -p)
+    setStatus "stopped"
     trap - SIGTERM
     exit 0
 }
 
-# Pull and build in parallel, then wait for all
-if [ "$UPGRADE_MODULES" == "yes" ]; then
-    allSuccess="_"
-    for moduleDir in "${MODULE_DIRS[@]}"; do
-        (
-            moduleName="${moduleDir##habitat-}"
-            prepEnvironment "$moduleName"
-            echo "Pulling latest images for '$moduleName'..."
-            if docker compose \
+
+# ### Init
+setStatus "init"
+
+mapfile -t tmp_module_list < <(printf "%s" "$MODULE_LIST" | sed -E 's/([^\\]|^),/\1\n/g')
+for moduleSpec in "${tmp_module_list[@]}"; do
+    moduleRepoUrl="$(echo "$moduleSpec" | grep -Po '^[ \t]*\K.*[^ \t]')"
+    if echo "$moduleRepoUrl" | grep -Pqv '^https://'; then # No changes if full URL supplied
+        if echo "$moduleRepoUrl" | grep -q '/'; then # User/Org + Repo means GitHub
+            moduleRepoUrl="https://github.com/$moduleRepoUrl.git"
+        else # Short form for official habitat module
+            echo "$moduleRepoUrl" | grep -q '^habitat-' || moduleRepoUrl="habitat-$moduleRepoUrl" # Official modules are always prefixed with 'habitat-', add if necessary
+            moduleRepoUrl="https://github.com/Tschebbischeff/$moduleRepoUrl.git"
+        fi
+    fi
+    moduleShortName="${moduleRepoUrl##*/}"
+    moduleShortName="${moduleShortName%.git}"
+    moduleShortName="${moduleShortName##habitat-}"
+    # Populate arrays
+    MODULE_REPOS[$moduleShortName]="$moduleRepoUrl"
+    MODULE_DIRS[$moduleShortName]="$(basename "$(git ls-remote --get-url "$moduleRepoUrl")" .git)"
+    MODULE_UPDATED[$moduleShortName]=""
+done; unset moduleSpec moduleRepoUrl moduleShortName
+unset tmp_module_list
+# shellcheck disable=SC2155  # Return value is of no interest
+export HABITAT_APP_MODULES="$(printf ',%s' "${!MODULE_REPOS[@]}" | grep -Po '^,\K.*')"
+# shellcheck disable=SC2155  # Return value is of no interest
+export HABITAT_APP_SESSION_ID="$(cat "/proc/sys/kernel/random/uuid")"
+
+
+# ### Clone and/or Update modules
+setStatus "update"
+
+for moduleName in "${!MODULE_REPOS[@]}"; do
+    moduleRepoUrl="${MODULE_REPOS[$moduleName]}"
+    moduleRepoDir="${MODULE_DIRS[$moduleName]}"
+    if [ -d "$moduleRepoDir" ]; then
+        if [ "$UPDATE_MODULES" == "yes" ]; then
+            currentWorkdir="$(pwd)"
+            cd "$moduleRepoDir"
+            git fetch -p -q
+            if [ "$(git rev-list "HEAD..@{u}" --count 2>/dev/null || echo 0)" -eq "0" ]; then
+                echo "No updates for '$moduleName' available."
+            else
+                if [ -n "$(git status --porcelain)" ]; then
+                    echo "WARNING: Workdir dirty, not downloading the available update."
+                else
+                    echo "Downloading update for '$moduleName'..."
+                    git pull && \
+                        MODULE_UPDATED[$moduleName]="_"
+                fi
+            fi
+            cd "$currentWorkdir"; unset currentWorkdir
+        fi
+    else
+        echo "Initializing module '$moduleName'..."
+        git clone "$moduleRepoUrl" "$moduleRepoDir" && \
+            MODULE_UPDATED[$moduleName]="_"
+    fi
+done; unset moduleName moduleRepoUrl moduleRepoDir
+
+
+# ### Pull and build if needed and/ or enabled
+setStatus "upgrade"
+
+allSuccess="_"
+for moduleName in "${!MODULE_DIRS[@]}"; do
+    (
+        moduleDir="${MODULE_DIRS[$moduleName]}"
+        moduleUpdated="${MODULE_UPDATED[$moduleName]}"
+        prepEnvironment "$moduleName"
+        [ "$UPGRADE_MODULES" == "yes" ] \
+            && echo "Pulling latest images for '$moduleName'..." \
+            || echo "Pulling missing images for '$moduleName'..."
+        imageHashesBefore="$(
+            docker compose \
                 -f "./$moduleDir/compose.yml" \
                 --progress plain \
-            pull; then
+            config \
+                --images \
+            2>/dev/null | sort | xargs -r docker image inspect --format '{{.Id}}' 2>/dev/null
+        )"
+        if docker compose \
+            -f "./$moduleDir/compose.yml" \
+            --progress plain \
+        pull \
+            --policy "$([ "$UPGRADE_MODULES" == "yes" ] && echo "always" || echo "missing")"
+        then
+            imageHashesAfter="$(
+                docker compose \
+                    -f "./$moduleDir/compose.yml" \
+                    --progress plain \
+                config \
+                    --images \
+                2>/dev/null | sort | xargs -r docker image inspect --format '{{.Id}}' 2>/dev/null
+            )"
+            if [ "$imageHashesBefore" != "$imageHashesAfter" ] || [ -n "$moduleUpdated" ]; then
                 echo "Building '$moduleName'..."
                 docker compose \
                     -f "./$moduleDir/compose.yml" \
                     --progress plain \
                 build
+            else
+                echo "No updates in module repository or images, running everything from local caches."
             fi
-        ) &
-        jobPID="$!"
-        if [ "$UPGRADE_MODULES_SEQUENTIAL" == "yes" ]; then
-            wait "$jobPID" || {
-                allSuccess=""
-                break
-            }
         fi
-    done
-    # shellcheck disable=SC2046 # Word splitting intentional
-    for jobPID in $(jobs -p); do
-        wait "$jobPID" || allSuccess=""
-    done
-    [ -n "$allSuccess" ] || {
-        echo "Some pull and/ or build operations failed, see logs above."
-        exit 1
-    }
-else
-    echo "Not pulling or building any images, set UPGRADE_MODULES to 'yes' to enable."
-fi
+    ) &
+    jobPID="$!"
+    if [ "$UPGRADE_MODULES_SEQUENTIAL" == "yes" ]; then
+        wait "$jobPID" || {
+            allSuccess=""
+            break
+        }
+    fi
+    unset jobPID
+done; unset moduleName
+# shellcheck disable=SC2046 # Word splitting intentional
+for jobPID in $(jobs -p); do
+    wait "$jobPID" || allSuccess=""
+done; unset jobPID
+[ -n "$allSuccess" ] || {
+    echo "Some pull and/ or build operations failed, see logs above."
+    exit 1
+}
+unset allSuccess
 
-# Start in parallel, then wait for all, when killed kill all
+# ### Start modules
+setStatus "starting"
+
 trap killApp SIGTERM
-for moduleDir in "${MODULE_DIRS[@]}"; do
+for moduleName in "${!MODULE_DIRS[@]}"; do
+    moduleDir="${MODULE_DIRS[$moduleName]}"
     (
-        moduleName="${moduleDir##habitat-}"
         prepEnvironment "$moduleName"
         echo "Starting '$moduleName' ..."
         if ! docker compose \
             -f "./$moduleDir/compose.yml" \
             --progress plain \
         up \
+            --pull never \
+            --no-build \
             -d
         then
             exit 1
@@ -181,9 +226,18 @@ for moduleDir in "${MODULE_DIRS[@]}"; do
             config --services
         )
     ) &
-done
+done; unset moduleName moduleDir
+
+
+# ### Wait for containers to finish or for SIGTERM
+setStatus "started"
+
 # shellcheck disable=SC2046 # Word splitting intentional
 wait $(jobs -p)
+
+
+# ### Exit
+setStatus "stopped"
 
 echo "All modules have exited."
 trap - SIGTERM

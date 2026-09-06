@@ -216,8 +216,8 @@ At **run-time** the deployment container additionally requires the following env
 | `RUN_AS_USER` | UID to run the deployment container as. If empty, the UID is inferred from the `MODULE_DEPLOY_PATH` volume. | `1000` | *Empty* |
 | `RUN_AS_GROUP` | GID to run the deployment container as. If empty, the GID is inferred from the `MODULE_DEPLOY_PATH` volume. | `100` | *Empty* |
 | `UPDATE_MODULES` | Whether to update module repositories before starting. | `no` | `yes` |
-| `UPGRADE_MODULES` | Whether to pull and build the latest images defined by modules before starting. | `no` | `yes` |
-| `UPGRADE_MODULES_SEQUENTIAL` | Whether to pull and build images sequentially instead of in parallel. Has no effect if `UPGRADE_MODULES` is set to `no` | `yes` | `no` |
+| `UPGRADE_MODULES` | Whether to pull and build the latest images defined by modules before starting or exclusively use local caches if available. | `no` | `yes` |
+| `UPGRADE_MODULES_SEQUENTIAL` | Whether to pull and build images sequentially instead of in parallel. | `yes` | `no` |
 
 The module list supports the following formats:
  - Full HTTPS Git repository URL (e.g.: `https://github.com/Tschebbischeff/habitat-path.git`)
