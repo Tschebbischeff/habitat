@@ -86,8 +86,9 @@ echo "Fixing permissions on /habitat-deploy"
 export DOCKER_CONFIG="/tmp/.docker"
 export COMPOSE_BAKE="true"
 statusFile="$(mktemp)"
+mainExecutable="$1"; shift
 chown "$RUN_AS_USER:$RUN_AS_GROUP" "$statusFile"
 
 # Drop privileges and run
 echo "Dropping privileges and executing CMD..."
-exec gosu "$USER_NAME" "$statusFile" "$@"
+exec gosu "$USER_NAME" "$mainExecutable" "$statusFile" "$@"
