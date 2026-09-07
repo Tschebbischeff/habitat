@@ -65,6 +65,7 @@ killApp() {
     # shellcheck disable=SC2046 # Word splitting intentional
     wait $(jobs -p)
     setStatus "stopped"
+    echo "All modules stopped."
     trap - SIGTERM
     exit 0
 }
