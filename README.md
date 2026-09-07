@@ -274,11 +274,6 @@ For additional environment variables check out the documentation of the specific
 
 *The deployment container does not require any secrets, refer to the documentation of the modules you want to deploy for additional secrets that might be needed.*
 
-> [!NOTE]
-> The deployment container will report warnings about missing module secrets due to the docker engine checking for their existence from within the deployment container.
-> The secrets will however still be mounted from the host system and a fatal error will abort starting a module if secrets are missing on a host.
-> The warning printed by the deployment container can be ignored.
-
 <!--
 > [!NOTE]
 > All secrets are expected to be files within a single folder, each file containing the value of the secret. \
