@@ -212,7 +212,8 @@ for moduleName in "${!MODULE_DIRS[@]}"; do
         up \
             --pull never \
             --no-build \
-            -d
+            -d \
+        2> >(grep -Pv '^.*level=warning msg="(Found orphan containers.*|secret file .* does not exist)"$' >&2)
         then
             exit 1
         fi
