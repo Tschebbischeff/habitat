@@ -7,7 +7,7 @@ COPY ./entrypoint.sh /habitat-deploy/entrypoint.sh
 RUN chmod +x "/habitat-deploy/entrypoint.sh"
 COPY ./deploy.sh /habitat-deploy/deploy.sh
 RUN chmod +x "/habitat-deploy/deploy.sh"
-COPY ./deploy.sh /habitat-deploy/healthcheck.sh
+COPY ./healthcheck.sh /habitat-deploy/healthcheck.sh
 RUN chmod +x "/habitat-deploy/healthcheck.sh"
 
 WORKDIR /habitat-deploy
