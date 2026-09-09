@@ -141,8 +141,17 @@ for moduleName in "${!MODULE_DIRS[@]}"; do
         moduleDir="${MODULE_DIRS[$moduleName]}"
         moduleUpdated="${MODULE_UPDATED[$moduleName]}"
         upgradeModules="$UPGRADE_MODULES"
+        echo "Prep env $moduleName"
+        if [ "$moduleName" == "stash" ]; then
+            printenv
+        fi
         prepEnvironment "$moduleName"
-        echo "testvar=$NEXTCLOUD_CUSTOM_GROUPS"
+        if [ "$moduleName" == "stash" ]; then
+            echo "Prepped"
+            printenv
+            echo "***"
+            echo "NEXTCLOUD_CUSTOM_GROUPS=$NEXTCLOUD_CUSTOM_GROUPS"
+        fi
         [ "$upgradeModules" == "yes" ] \
             && echo "Pulling latest images for '$moduleName'..." \
             || echo "Pulling missing images for '$moduleName'..."
