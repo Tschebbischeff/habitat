@@ -171,7 +171,7 @@ for moduleName in "${!MODULE_DIRS[@]}"; do
                 2>/dev/null | sort | xargs -r docker image inspect --format '{{.Id}}' 2>/dev/null || true
             )"
             if [ "$forceBuild" == "yes" ] || [ "$imageHashesBefore" != "$imageHashesAfter" ] || [ -n "$moduleUpdated" ]; then
-                echo "Building '$moduleName'..."
+                echo "Building $([ "$forceBuild" == "yes" ] && echo "(forced) ")'$moduleName'..."
                 docker compose \
                     -f "./$moduleDir/compose.yml" \
                     --progress plain \
