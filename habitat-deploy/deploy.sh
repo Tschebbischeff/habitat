@@ -199,7 +199,6 @@ unset allSuccess
 
 # ### Start modules
 setStatus "starting"
-while :; do sleep 1; done
 
 trap killApp SIGTERM
 for moduleName in "${!MODULE_DIRS[@]}"; do
