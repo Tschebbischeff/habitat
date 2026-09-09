@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# set -euo pipefail
+set -euo pipefail
 
 # ### Declarations and Definitions
 
@@ -154,7 +154,7 @@ for moduleName in "${!MODULE_DIRS[@]}"; do
                 --progress plain \
             config \
                 --images \
-            2>/dev/null | sort | xargs -r docker image inspect --format '{{.Id}}' 2>/dev/null
+            2>/dev/null | sort | xargs -r docker image inspect --format '{{.Id}}' 2>/dev/null || true
         )"
         if docker compose \
             -f "./$moduleDir/compose.yml" \
@@ -168,7 +168,7 @@ for moduleName in "${!MODULE_DIRS[@]}"; do
                     --progress plain \
                 config \
                     --images \
-                2>/dev/null | sort | xargs -r docker image inspect --format '{{.Id}}' 2>/dev/null
+                2>/dev/null | sort | xargs -r docker image inspect --format '{{.Id}}' 2>/dev/null || true
             )"
             if [ "$forceBuild" == "yes" ] || [ "$imageHashesBefore" != "$imageHashesAfter" ] || [ -n "$moduleUpdated" ]; then
                 echo "Building '$moduleName'..."
