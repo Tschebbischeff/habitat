@@ -45,6 +45,7 @@ prepEnvironment() {
     unset "RUN_AS_GROUP"
     unset "UPDATE_MODULES"
     unset "UPGRADE_MODULES"
+    unset "UPGRADE_MODULES_FORCE_BUILD"
     unset "UPGRADE_MODULES_SEQUENTIAL"
 }
 
@@ -142,6 +143,7 @@ for moduleName in "${!MODULE_DIRS[@]}"; do
         moduleDir="${MODULE_DIRS[$moduleName]}"
         moduleUpdated="${MODULE_UPDATED[$moduleName]}"
         upgradeModules="$UPGRADE_MODULES"
+        forceBuild="$UPGRADE_MODULES_FORCE_BUILD"
         prepEnvironment "$moduleName"
         [ "$upgradeModules" == "yes" ] \
             && echo "Pulling latest images for '$moduleName'..." \
@@ -168,7 +170,7 @@ for moduleName in "${!MODULE_DIRS[@]}"; do
                     --images \
                 2>/dev/null | sort | xargs -r docker image inspect --format '{{.Id}}' 2>/dev/null
             )"
-            if [ "$imageHashesBefore" != "$imageHashesAfter" ] || [ -n "$moduleUpdated" ]; then
+            if [ "$forceBuild" == "yes" ] || [ "$imageHashesBefore" != "$imageHashesAfter" ] || [ -n "$moduleUpdated" ]; then
                 echo "Building '$moduleName'..."
                 docker compose \
                     -f "./$moduleDir/compose.yml" \
