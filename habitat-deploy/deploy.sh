@@ -142,6 +142,7 @@ for moduleName in "${!MODULE_DIRS[@]}"; do
         moduleUpdated="${MODULE_UPDATED[$moduleName]}"
         upgradeModules="$UPGRADE_MODULES"
         prepEnvironment "$moduleName"
+        echo "testvar=$NEXTCLOUD_CUSTOM_GROUPS"
         [ "$upgradeModules" == "yes" ] \
             && echo "Pulling latest images for '$moduleName'..." \
             || echo "Pulling missing images for '$moduleName'..."
@@ -199,6 +200,7 @@ unset allSuccess
 
 # ### Start modules
 setStatus "starting"
+while :; do sleep 1; done
 
 trap killApp SIGTERM
 for moduleName in "${!MODULE_DIRS[@]}"; do
