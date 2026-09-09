@@ -136,6 +136,7 @@ done; unset moduleName moduleRepoUrl moduleRepoDir
 setStatus "upgrade"
 
 allSuccess="_"
+declare -A moduleByPID
 for moduleName in "${!MODULE_DIRS[@]}"; do
     (
         moduleDir="${MODULE_DIRS[$moduleName]}"
@@ -179,8 +180,12 @@ for moduleName in "${!MODULE_DIRS[@]}"; do
         fi
     ) &
     jobPID="$!"
+    moduleByPID["$jobPID"]="$moduleName"
     if [ "$UPGRADE_MODULES_SEQUENTIAL" == "yes" ]; then
-        wait "$jobPID" || {
+        wait "$jobPID"
+        exitCode="$?"
+        [ "$exitCode" -eq 0 ] || {
+            echo "Upgrading '$moduleName' failed with exit code '$exitCode'."
             allSuccess=""
             break
         }
@@ -189,7 +194,13 @@ for moduleName in "${!MODULE_DIRS[@]}"; do
 done; unset moduleName
 # shellcheck disable=SC2046 # Word splitting intentional
 for jobPID in $(jobs -p); do
-    wait "$jobPID" || allSuccess=""
+    wait "$jobPID"
+    exitCode="$?"
+    [ "$exitCode" -eq 0 ] || {
+        echo "Upgrading '${moduleByPID["$jobPID"]}' failed with exit code '$exitCode'."
+        allSuccess=""
+        break
+    }
 done; unset jobPID
 [ -n "$allSuccess" ] || {
     echo "Some pull and/ or build operations failed, see logs above."
