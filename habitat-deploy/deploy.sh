@@ -57,7 +57,7 @@ killApp() {
     echo "Stop signal received, stopping all modules..."
     for moduleName in "${!MODULE_DIRS[@]}"; do
         (
-            moduleShutdownTimeout="$(( SHUTDOWN_TIMEOUT - 5 ))"
+            moduleShutdownTimeout="$(( SHUTDOWN_TIMEOUT - 10 ))"
             prepEnvironment "$moduleName"
             echo "Stopping '$moduleName' (Timeout: ${moduleShutdownTimeout}s)..."
             docker compose \
