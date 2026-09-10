@@ -47,6 +47,7 @@ prepEnvironment() {
     unset "UPGRADE_MODULES"
     unset "UPGRADE_MODULES_FORCE_BUILD"
     unset "UPGRADE_MODULES_SEQUENTIAL"
+    unset "SHUTDOWN_TIMEOUT"
 }
 
 # shellcheck disable=SC2329 # Is used in trap
@@ -56,11 +57,14 @@ killApp() {
     echo "Stop signal received, stopping all modules..."
     for moduleName in "${!MODULE_DIRS[@]}"; do
         (
+            moduleShutdownTimeout="$(( SHUTDOWN_TIMEOUT - 5 ))"
             prepEnvironment "$moduleName"
             echo "Stopping '$moduleName' ..."
             docker compose \
                 -f "./${MODULE_DIRS[$moduleName]}/compose.yml" \
-            down &>/dev/null
+            down \
+                --timeout "$moduleShutdownTimeout" \
+            &>/dev/null
         ) &
     done
     # shellcheck disable=SC2046 # Word splitting intentional
