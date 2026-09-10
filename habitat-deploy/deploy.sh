@@ -59,7 +59,7 @@ killApp() {
         (
             moduleShutdownTimeout="$(( SHUTDOWN_TIMEOUT - 5 ))"
             prepEnvironment "$moduleName"
-            echo "Stopping '$moduleName' ..."
+            echo "Stopping '$moduleName' (Timeout: ${moduleShutdownTimeout}s)..."
             docker compose \
                 -f "./${MODULE_DIRS[$moduleName]}/compose.yml" \
             down \
