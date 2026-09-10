@@ -231,6 +231,21 @@ for moduleName in "${!MODULE_DIRS[@]}"; do
             exit 1
         fi
         echo "Waiting for '$moduleName' to exit..."
+        addContainerNameToLog=()
+        while read -r id name; do
+            [ -n "$id" ] && [ -n "$name" ] && addContainerNameToLog+=(-e "s/\"$id\"/\"$id\" (${name//\//\\/})/g")
+        done < <(
+            docker compose \
+                -f "./$moduleDir/compose.yml" \
+                --progress plain \
+            ps \
+                -a \
+                --no-trunc \
+                --format "{{.ID}} {{.Name}}"
+        )
+        if [ "${#addContainerNameToLog[@]}" -eq 0 ]; then
+            addContainerNameToLog=(-e 's/^//')
+        fi
         # shellcheck disable=SC2046 # Word splitting intentional
         docker compose \
             -f "./$moduleDir/compose.yml" \
@@ -240,7 +255,7 @@ for moduleName in "${!MODULE_DIRS[@]}"; do
                 -f "./$moduleDir/compose.yml" \
                 --progress plain \
             config --services
-        )
+        ) | sed -u "${addContainerNameToLog[@]}"
     ) &
 done; unset moduleName moduleDir
 
