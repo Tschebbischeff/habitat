@@ -255,7 +255,7 @@ for moduleName in "${!MODULE_DIRS[@]}"; do
                 -f "./$moduleDir/compose.yml" \
                 --progress plain \
             config --services
-        ) | sed -u "${addContainerNameToLog[@]}"
+        ) | stdbuf -oL sed "${addContainerNameToLog[@]}"
     ) &
 done; unset moduleName moduleDir
 
