@@ -148,6 +148,7 @@ for moduleName in "${!MODULE_DIRS[@]}"; do
         moduleUpdated="${MODULE_UPDATED[$moduleName]}"
         upgradeModules="$UPGRADE_MODULES"
         forceBuild="$UPGRADE_MODULES_FORCE_BUILD"
+        forceBuild="yes" # TODO: Remove when detection of needing a rebuild is more robust
         prepEnvironment "$moduleName"
         [ "$upgradeModules" == "yes" ] \
             && echo "Pulling latest images for '$moduleName'..." \
