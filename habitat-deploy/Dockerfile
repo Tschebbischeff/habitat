@@ -13,5 +13,5 @@ RUN find "/habitat-deploy/bin" -type f -exec chmod +x {} \;
 ENV PATH="/habitat-deploy/bin:$PATH"
 
 WORKDIR /habitat-deploy
-ENTRYPOINT [ "/entrypoint.sh" ]
+ENTRYPOINT [ "/habitat-deploy/entrypoint.sh" ]
 CMD [ "supervisor" ]
