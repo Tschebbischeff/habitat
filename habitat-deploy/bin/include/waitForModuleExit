@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Include File Header
+
+[ -n "${HABITAT_INCLUDE["__main__"]}" ] || { echo "Included file potentially executed directly. Bailing."; exit 1; }
+[ -n "${HABITAT_INCLUDE["$(basename "${BASH_SOURCE[0]}")"]}" ] && return 0
+HABITAT_INCLUDE["$(basename "${BASH_SOURCE[0]}")"]="_"
+echo "Loading '$(basename "${BASH_SOURCE[0]}")'..."
+
+# Include other Modules
+
+include prepEnvironment "$@"
+include parseModuleInfo "$@"
+
+# Public Functions
+
+waitForModuleExit() {
+    # Args
+    local moduleName
+    moduleName="$1"; shift
+    # Vars
+    local moduleDir
+    declare -A containerIdToName
+    moduleDir="${MODULE_DIRS[$moduleName]}"
+    # Body
+    (
+        prepEnvironment "$moduleName"
+        echo "Waiting for '$moduleName' to exit..."
+        while read -r id name; do
+            [ -n "$id" ] && [ -n "$name" ] && containerIdToName["$id"]="$name"
+        done < <(
+            docker compose \
+                -f "./$moduleDir/compose.yml" \
+                --progress plain \
+            ps \
+                -a \
+                --no-trunc \
+                --format "{{.ID}} {{.Name}}"
+        )
+        # shellcheck disable=SC2046 # Word splitting intentional
+        docker compose \
+            -f "./$moduleDir/compose.yml" \
+            --progress plain \
+        wait $(
+            docker compose \
+                -f "./$moduleDir/compose.yml" \
+                --progress plain \
+            config --services
+        ) | while read -r line; do
+            for id in "${!containerIdToName[@]}"; do
+                line="${line//\"$id\"/\"$id\" (${containerIdToName[$id]})}"
+            done
+            echo "$line"
+        done
+        exit "$?"
+    )
+    return "$?"
+}
+
+waitForAllModulesExit() {
+    # Vars
+    local allSuccess moduleName jobPID
+    declare -A moduleByPID
+    allSuccess="_"
+    # Body
+    for moduleName in "${!MODULE_DIRS[@]}"; do
+        waitForModuleExit "$moduleName" &
+        moduleByPID["$!"]="$moduleName"
+    done
+    # shellcheck disable=SC2046 # Word splitting intentional
+    for jobPID in $(jobs -p); do
+        wait "$jobPID"
+        exitCode="$?"
+        [ "$exitCode" -eq 0 ] || {
+            echo "Module '${moduleByPID["$jobPID"]}' exited with exit code '$exitCode'."
+            allSuccess=""
+        }
+    done
+    [ -n "$allSuccess" ] || exit 1
+}

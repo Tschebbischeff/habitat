@@ -2,14 +2,13 @@ FROM alpine
 
 RUN apk -U add gosu bash git grep docker docker-cli-compose docker-cli-buildx
 
-RUN mkdir -p "/habitat-deploy"
-COPY ./entrypoint.sh /habitat-deploy/entrypoint.sh
-RUN chmod +x "/habitat-deploy/entrypoint.sh"
-COPY ./deploy.sh /habitat-deploy/deploy.sh
-RUN chmod +x "/habitat-deploy/deploy.sh"
-COPY ./healthcheck.sh /habitat-deploy/healthcheck.sh
-RUN chmod +x "/habitat-deploy/healthcheck.sh"
+COPY ./entrypoint.sh /entrypoint.sh
+RUN chmod +x "/entrypoint.sh"
+COPY ./healthcheck.sh /healthcheck.sh
+RUN chmod +x "/healthcheck.sh"
+COPY ./bin /habitat-deploy
+RUN chmod +x "/habitat-deploy/"*
 
 WORKDIR /habitat-deploy
-ENTRYPOINT [ "/habitat-deploy/entrypoint.sh" ]
-CMD [ "/habitat-deploy/deploy.sh" ]
+ENTRYPOINT [ "/entrypoint.sh" ]
+CMD [ "deploy" ]

@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# ### Includes
+
+declare -A HABITAT_INCLUDE
+# shellcheck disable=SC2034  # Checked within imported scripts
+HABITAT_INCLUDE["__main__"]="_"
+include() {
+    local incName
+    incName="$1"; shift
+    # shellcheck disable=SC1090  # Intended non-constant source
+    . "./include/$incName" "$@"
+}
+
+include setContainerStatus "$@"
+include prepEnvironment "$@"
+include parseModuleInfo "$@"
+include updateOrInitModule "$@"
+include upgradeModule "$@"
+include startModule "$@"
+include stopModule "$@"
+include waitForModuleExit "$@"
+
+# ### Exit function
+
+# shellcheck disable=SC2329  # Gets used in trap
+onTerminate() {
+    trap '' SIGTERM
+    setContainerStatus "stopping"
+    echo "Stop signal received, stopping all modules..."
+    stopAllModules "$(( SHUTDOWN_TIMEOUT - 10 ))"
+    setContainerStatus "stopped"
+    echo "All modules stopped."
+    trap - SIGTERM
+    exit 0
+}
+
+# ### Init
+setContainerStatus "init"
+
+cd "$MODULE_DEPLOY_PATH"
+
+parseModuleInfo "$MODULE_LIST"
+# shellcheck disable=SC2155  # Return value is of no interest
+export HABITAT_APP_MODULES="$(printf ',%s' "${!MODULE_REPOS[@]}" | grep -Po '^,\K.*')"
+# shellcheck disable=SC2155  # Return value is of no interest
+export HABITAT_APP_SESSION_ID="$(cat "/proc/sys/kernel/random/uuid")"
+
+
+# ### Clone and/or Update modules
+setContainerStatus "update"
+
+updateOrInitAllModules "$UPDATE_MODULES" "${!MODULE_REPOS[@]}"
+
+
+# ### Pull and build if needed and/ or enabled
+setContainerStatus "upgrade"
+
+UPGRADE_MODULES_FORCE_BUILD="yes" # TODO: Remove when detection of needing a rebuild is more robust
+upgradeAllModules "$UPGRADE_MODULES" "$UPGRADE_MODULES_FORCE_BUILD" "$UPGRADE_MODULES_SEQUENTIAL" || {
+    echo "Some pull and/ or build operations failed, see logs above."
+    exit 1
+}
+
+# ### Start modules
+setContainerStatus "starting"
+
+trap onTerminate SIGTERM
+startAllModules || {
+    echo "Some start operations failed, see logs above."
+    exit 1
+}
+
+# ### Wait for containers to finish or for SIGTERM
+setContainerStatus "started"
+
+waitForAllModulesExit
+
+# ### Exit
+setContainerStatus "stopped"
+
+echo "All modules have exited."
+trap - SIGTERM
+exit 0
