@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
+cd "$(dirname "$(readlink -f "$0")")"
 [ "$$" -eq 1 ] || { echo "Supervisor should only be run as PID 1."; exit 1; }
 
 # ### Includes
