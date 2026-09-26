@@ -7,7 +7,8 @@ RUN chmod +x "/entrypoint.sh"
 COPY ./healthcheck.sh /healthcheck.sh
 RUN chmod +x "/healthcheck.sh"
 COPY ./bin /habitat-deploy
-RUN chmod +x "/habitat-deploy/"*
+RUN find "/habitat-deploy" -type f -exec chmod +x {} \;
+ENV PATH="/habitat-deploy:$PATH"
 
 WORKDIR /habitat-deploy
 ENTRYPOINT [ "/entrypoint.sh" ]
