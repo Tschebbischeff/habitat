@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# ### Includes
+
+declare -gA HABITAT_INCLUDE
+# shellcheck disable=SC2034  # Checked within imported scripts
+HABITAT_INCLUDE["__main__"]="_"
+include() {
+    local incName
+    incName="$1"; shift
+    # shellcheck disable=SC1090  # Intended non-constant source
+    . "./include/$incName" "$@"
+}
+
+include containerStatus "$@"
+
+# ### Body
+
+currentStatus="$(getContainerStatus)"
+[ "$currentStatus" == "update" ] && exit 0
+[ "$currentStatus" == "upgrade" ] && exit 0
+[ "$currentStatus" == "starting" ] && exit 0
+[ "$currentStatus" == "started" ] && exit 0
+
+exit 2

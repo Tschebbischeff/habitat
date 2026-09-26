@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+echo "Not implemented."
+
+exit 1
+
 # ### Includes
 
 declare -gA HABITAT_INCLUDE
@@ -23,22 +27,7 @@ include startModule "$@"
 include stopModule "$@"
 include waitForModuleExit "$@"
 
-# ### Exit function
-
-# shellcheck disable=SC2329  # Gets used in trap
-onTerminate() {
-    trap '' SIGTERM
-    setContainerStatus "stopping"
-    echo "Stop signal received, stopping all modules..."
-    stopAllModules "$(( SHUTDOWN_TIMEOUT - 10 ))"
-    setContainerStatus "stopped"
-    echo "All modules stopped."
-    trap - SIGTERM
-    exit 0
-}
-
 # ### Init
-setContainerStatus "init"
 
 cd "$MODULE_DEPLOY_PATH"
 
