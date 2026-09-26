@@ -31,7 +31,7 @@ services:
       - habitat-modules:${MODULE_DEPLOY_PATH:?}
       - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
-      test: [ "CMD", "./healthcheck.sh" ]
+      test: [ "CMD", "healthcheck" ]
       interval: 30s
       timeout: 5s
       retries: 5
