@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # shellcheck disable=SC2009  # pgrep does not show arguments
-STATUS_FILE="$(ps -o pid,args | grep -Po '^ *1 +.*/deploy.sh +\K[^ ]*')"
+STATUS_FILE="$(ps -o pid,args | grep -Po '^ *1 +.*/deploy +\K[^ ]*')"
 
 [ -f "$STATUS_FILE" ] || exit 1
 currentStatus="$(cat "$STATUS_FILE")"
