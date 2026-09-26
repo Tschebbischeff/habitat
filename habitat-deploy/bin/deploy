@@ -4,7 +4,7 @@ set -euo pipefail
 
 # ### Includes
 
-declare -A HABITAT_INCLUDE
+declare -gA HABITAT_INCLUDE
 # shellcheck disable=SC2034  # Checked within imported scripts
 HABITAT_INCLUDE["__main__"]="_"
 include() {
