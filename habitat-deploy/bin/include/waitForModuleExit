@@ -11,14 +11,15 @@ echo "Loading '$(basename "${BASH_SOURCE[0]}")'..."
 
 # Include other Modules
 
-include prepEnvironment "$@"
-include parseModuleInfo "$@"
+include prepEnvironment
+include parseModuleInfo
 
 # Public Functions
 
 waitForModuleExit() {
     # Args
-    local moduleName
+    local moduleWorkdir moduleName
+    moduleWorkdir="$1"; shift
     moduleName="$1"; shift
     # Vars
     local moduleDir
@@ -26,6 +27,7 @@ waitForModuleExit() {
     moduleDir="${MODULE_DIRS[$moduleName]}"
     # Body
     (
+        cd "$moduleWorkdir"
         prepEnvironment "$moduleName"
         echo "Waiting for '$moduleName' to exit..."
         while read -r id name; do
@@ -55,28 +57,29 @@ waitForModuleExit() {
             echo "$line"
         done
         exit "$?"
-    )
-    return "$?"
+    ) || return "$?"
+    return 0
 }
 
 waitForAllModulesExit() {
+    # Args
+    local moduleWorkdir
+    moduleWorkdir="$1"; shift
     # Vars
-    local allSuccess moduleName jobPID
+    local exitCode moduleName jobPID
     declare -A moduleByPID
-    allSuccess="_"
+    exitCode="0"
     # Body
     for moduleName in "${!MODULE_DIRS[@]}"; do
-        waitForModuleExit "$moduleName" &
+        waitForModuleExit "$moduleWorkdir" "$moduleName" &
         moduleByPID["$!"]="$moduleName"
     done
     # shellcheck disable=SC2046 # Word splitting intentional
     for jobPID in $(jobs -p); do
-        wait "$jobPID"
-        exitCode="$?"
-        [ "$exitCode" -eq 0 ] || {
-            echo "Module '${moduleByPID["$jobPID"]}' exited with exit code '$exitCode'."
-            allSuccess=""
+        wait "$jobPID" || {
+            echo "Module '${moduleByPID["$jobPID"]}' exited with exit code '$?'."
+            exitCode="1"
         }
     done
-    [ -n "$allSuccess" ] || exit 1
+    return "$exitCode"
 }

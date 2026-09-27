@@ -11,7 +11,7 @@ echo "Loading '$(basename "${BASH_SOURCE[0]}")'..."
 
 # Include other Modules
 
-include parseModuleInfo "$@"
+include parseModuleInfo
 
 # Public Variables
 
@@ -21,50 +21,67 @@ declare -gA MODULE_UPDATED
 
 updateOrInitModule() {
     # Args
-    local moduleName updateAllowed
+    local moduleWorkdir moduleName updateAllowed
+    moduleWorkdir="$1"; shift
     moduleName="$1"; shift
     updateAllowed="$1"; shift
     # Vars
-    local moduleRepoUrl moduleRepoDir
+    local exitCode moduleRepoUrl moduleRepoDir
+    exitCode="0"
     moduleRepoUrl="${MODULE_REPOS[$moduleName]}"
     moduleRepoDir="${MODULE_DIRS[$moduleName]}"
     # Body
     # shellcheck disable=SC2034  # Scoped outside included function
-    MODULE_UPDATED[$moduleName]=""
-    if [ -d "$moduleRepoDir" ]; then
-        if [ "$updateAllowed" == "yes" ]; then
-            currentWorkdir="$(pwd)"
-            cd "$moduleRepoDir"
-            git fetch -p -q
-            if [ "$(git rev-list "HEAD..@{u}" --count 2>/dev/null || echo 0)" -eq "0" ]; then
-                echo "No updates for '$moduleName' available."
-            else
-                if [ -n "$(git status --porcelain)" ]; then
-                    echo "WARNING: Workdir dirty, not downloading the available update."
+    MODULE_UPDATED["$moduleName"]=""
+    (
+        cd "$moduleWorkdir"
+        if [ -d "$moduleRepoDir" ]; then
+            if [ "$updateAllowed" == "yes" ]; then
+                cd "$moduleRepoDir"
+                git fetch -p -q
+                if [ "$(git rev-list "HEAD..@{u}" --count 2>/dev/null || echo 0)" -eq "0" ]; then
+                    echo "No updates for '$moduleName' available."
+                    exit 1
                 else
-                    echo "Downloading update for '$moduleName'..."
-                    git pull && \
-                        MODULE_UPDATED["$moduleName"]="_"
+                    if [ -n "$(git status --porcelain)" ]; then
+                        echo "WARNING: Workdir dirty, not downloading the available update."
+                        exit 2
+                    else
+                        echo "Downloading update for '$moduleName'..."
+                        git pull
+                    fi
                 fi
             fi
-            cd "$currentWorkdir"; unset currentWorkdir
+        else
+            echo "Initializing module '$moduleName'..."
+            git clone "$moduleRepoUrl" "$moduleRepoDir"
         fi
-    else
-        echo "Initializing module '$moduleName'..."
-        # shellcheck disable=SC2034  # Scoped outside included function
-        git clone "$moduleRepoUrl" "$moduleRepoDir" && \
-            MODULE_UPDATED["$moduleName"]="_"
-    fi
+    ) || exitCode="$?"
+    # shellcheck disable=SC2034  # Scoped outside included function
+    [ "$exitCode" -eq 0 ] && MODULE_UPDATED["$moduleName"]="_"
+    return "$exitCode"
 }
 
 updateOrInitAllModules() {
     # Args
-    local updateAllowed
+    local moduleWorkdir updateAllowed
+    moduleWorkdir="$1"; shift
     updateAllowed="$1"; shift
     # Vars
-    local moduleName
+    local exitCode moduleName jobPID
+    declare -A moduleByPID
+    exitCode="0"
     # Body
-    for moduleName in "$@"; do
-        updateOrInitModule "$moduleName" "$updateAllowed"
+    for moduleName in "${!MODULE_DIRS[@]}"; do
+        updateOrInitModule "$moduleWorkdir" "$moduleName" "$updateAllowed" &
+        moduleByPID["$!"]="$moduleName"
     done
+    # shellcheck disable=SC2046 # Word splitting intentional
+    for jobPID in $(jobs -p); do
+        wait "$jobPID" || {
+            echo "Updating or initializing '${moduleByPID["$jobPID"]}' failed with exit code '$?'."
+            exitCode="1"
+        }
+    done
+    return "$exitCode"
 }

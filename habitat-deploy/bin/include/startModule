@@ -11,20 +11,22 @@ echo "Loading '$(basename "${BASH_SOURCE[0]}")'..."
 
 # Include other Modules
 
-include prepEnvironment "$@"
-include parseModuleInfo "$@"
+include prepEnvironment
+include parseModuleInfo
 
 # Public Functions
 
 startModule() {
     # Args
-    local moduleName
+    local moduleWorkdir moduleName
+    moduleWorkdir="$1"; shift
     moduleName="$1"; shift
     # Vars
     local moduleDir
     moduleDir="${MODULE_DIRS[$moduleName]}"
     # Body
     (
+        cd "$moduleWorkdir"
         prepEnvironment "$moduleName"
         echo "Starting '$moduleName' ..."
         docker compose \
@@ -36,28 +38,29 @@ startModule() {
             -d \
         2> >(grep -Pv '^.*level=warning msg="(Found orphan containers.*|secret file .* does not exist)"$' >&2)
         exit "$?"
-    )
-    return "$?"
+    ) || return "$?"
+    return 0
 }
 
 startAllModules() {
+    # Args
+    local moduleWorkdir
+    moduleWorkdir="$1"; shift
     # Vars
-    local allSuccess moduleName jobPID
+    local exitCode moduleName jobPID
     declare -A moduleByPID
-    allSuccess="_"
+    exitCode="0"
     # Body
     for moduleName in "${!MODULE_DIRS[@]}"; do
-        startModule "$moduleName" &
+        startModule "$moduleWorkdir" "$moduleName" &
         moduleByPID["$!"]="$moduleName"
     done
     # shellcheck disable=SC2046 # Word splitting intentional
     for jobPID in $(jobs -p); do
-        wait "$jobPID"
-        exitCode="$?"
-        [ "$exitCode" -eq 0 ] || {
-            echo "Starting '${moduleByPID["$jobPID"]}' failed with exit code '$exitCode'."
-            allSuccess=""
+        wait "$jobPID" || {
+            echo "Starting '${moduleByPID["$jobPID"]}' failed with exit code '$?'."
+            exitCode="1"
         }
     done
-    [ -n "$allSuccess" ] || exit 1
+    return "$exitCode"
 }

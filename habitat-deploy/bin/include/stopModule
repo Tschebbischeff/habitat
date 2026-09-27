@@ -11,14 +11,15 @@ echo "Loading '$(basename "${BASH_SOURCE[0]}")'..."
 
 # Include other Modules
 
-include prepEnvironment "$@"
-include parseModuleInfo "$@"
+include prepEnvironment
+include parseModuleInfo
 
 # Public Functions
 
 stopModule() {
     # Args
-    local moduleName shutdownTimeout
+    local moduleWorkdir moduleName shutdownTimeout
+    moduleWorkdir="$1"; shift
     moduleName="$1"; shift
     shutdownTimeout="$1"; shift
     # Vars
@@ -26,6 +27,7 @@ stopModule() {
     moduleDir="${MODULE_DIRS[$moduleName]}"
     # Body
     (
+        cd "$moduleWorkdir"
         prepEnvironment "$moduleName"
         echo "Stopping '$moduleName' (Timeout: ${shutdownTimeout}s)..."
         docker compose \
@@ -33,19 +35,30 @@ stopModule() {
         down \
             --timeout "$shutdownTimeout" \
         &>/dev/null
-    )
+    ) || return "$?"
+    return 0
 }
 
 stopAllModules() {
     # Args
-    local shutdownTimeout
+    local moduleWorkdir shutdownTimeout
+    moduleWorkdir="$1"; shift
     shutdownTimeout="$1"; shift
     # Vars
-    local moduleName
+    local exitCode moduleName jobPID
+    declare -A moduleByPID
+    exitCode="0"
     # Body
     for moduleName in "${!MODULE_DIRS[@]}"; do
-        stopModule "$moduleName" "$shutdownTimeout" &
+        stopModule "$moduleWorkdir" "$moduleName" "$shutdownTimeout" &
+        moduleByPID["$!"]="$moduleName"
     done
     # shellcheck disable=SC2046 # Word splitting intentional
-    wait $(jobs -p)
+    for jobPID in $(jobs -p); do
+        wait "$jobPID" || {
+            echo "Stopping '${moduleByPID["$jobPID"]}' failed with exit code '$?'."
+            exitCode="1"
+        }
+    done
+    return "$exitCode"
 }

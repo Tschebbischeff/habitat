@@ -1,21 +1,11 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
-cd "$(dirname "$(readlink -f "$0")")"
+. ./include/._source
 
 # ### Includes
 
-declare -gA HABITAT_INCLUDE
-# shellcheck disable=SC2034  # Checked within imported scripts
-HABITAT_INCLUDE["__main__"]="_"
-include() {
-    local incName
-    incName="$1"; shift
-    # shellcheck disable=SC1090  # Intended non-constant source
-    . "./include/$incName" "$@"
-}
-
-include containerStatus "$@"
+include containerStatus
 
 # ### Body
 

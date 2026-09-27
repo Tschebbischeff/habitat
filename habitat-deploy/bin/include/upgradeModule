@@ -11,15 +11,16 @@ echo "Loading '$(basename "${BASH_SOURCE[0]}")'..."
 
 # Include other Modules
 
-include prepEnvironment "$@"
-include parseModuleInfo "$@"
-include updateOrInitModule "$@"
+include prepEnvironment
+include parseModuleInfo
+include updateOrInitModule
 
 # Public Functions
 
 upgradeModule() {
     # Args
-    local moduleName upgradeAllowed forceBuild
+    local moduleWorkdir moduleName upgradeAllowed forceBuild
+    moduleWorkdir="$1"; shift
     moduleName="$1"; shift
     upgradeAllowed="$1"; shift
     forceBuild="$1"; shift
@@ -29,6 +30,7 @@ upgradeModule() {
     moduleUpdated="${MODULE_UPDATED[$moduleName]}"
     # Body
     (
+        cd "$moduleWorkdir"
         prepEnvironment "$moduleName"
         [ "$upgradeAllowed" == "yes" ] \
             && echo "Pulling latest images for '$moduleName'..." \
@@ -65,47 +67,42 @@ upgradeModule() {
                 echo "No updates in module repository or images, running everything from local caches."
             fi
         fi
-    )
-    return "$?"
+    ) || return "$?"
+    return 0
 }
 
 upgradeAllModules() {
     # Args
-    local upgradeAllowed forceBuild sequentialMode
+    local moduleWorkdir upgradeAllowed forceBuild sequentialMode
+    moduleWorkdir="$1"; shift
     upgradeAllowed="$1"; shift
     forceBuild="$1"; shift
     sequentialMode="$1"; shift
     # Vars
-    local allSuccess moduleName jobPID
+    local exitCode moduleName jobPID
     declare -A moduleByPID
-    allSuccess="_"
-    # Nested Functions
-    waitForModuleUpgrade() {
-        # Args
-        local moduleName jobPID
-        moduleName="$1"; shift
-        jobPID="$1"; shift
-        # Body
-        wait "$jobPID"
-        exitCode="$?"
-        [ "$exitCode" -eq 0 ] || {
-            echo "Upgrading '$moduleName' failed with exit code '$exitCode'."
-        }
-        return "$exitCode"
-    }
+    exitCode="0"
     # Body
     for moduleName in "${!MODULE_DIRS[@]}"; do
-        upgradeModule "$moduleName" "$upgradeAllowed" "$forceBuild" &
+        upgradeModule "$moduleWorkdir" "$moduleName" "$upgradeAllowed" "$forceBuild" &
         jobPID="$!"
         moduleByPID["$jobPID"]="$moduleName"
         if [ "$sequentialMode" == "yes" ]; then
-            waitForModuleUpgrade "$moduleName" "$jobPID" || { allSuccess=""; break; }
+            wait "$jobPID" || {
+                echo "Upgrading '${moduleByPID["$jobPID"]}' failed with exit code '$?'."
+                exitCode="1"
+                break
+            }
         fi
     done
-    # shellcheck disable=SC2046 # Word splitting intentional
-    for jobPID in $(jobs -p); do
-        waitForModuleUpgrade "${moduleByPID["$jobPID"]}" "$jobPID" || allSuccess=""
-    done
-    unset waitForModuleUpgrade
-    [ -n "$allSuccess" ] || exit 1
+    if [ "$sequentialMode" != "yes" ]; then
+        # shellcheck disable=SC2046 # Word splitting intentional
+        for jobPID in $(jobs -p); do
+            wait "$jobPID" || {
+                echo "Upgrading '${moduleByPID["$jobPID"]}' failed with exit code '$?'."
+                exitCode="1"
+            }
+        done
+    fi
+    return "$exitCode"
 }
