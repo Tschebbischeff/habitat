@@ -22,18 +22,28 @@ include waitForModuleExit
 
 # ### Exit function
 
+exitImmediately() {
+    setContainerStatus "stopped"
+    trap - SIGTERM
+    [[ -v "2" ]] && [ -n "$2" ] && echo "$2"
+    [[ -v "1" ]] && exit "$1"
+    exit 0
+}
 # shellcheck disable=SC2329  # Gets used in trap
 onTerminate() {
     trap '' SIGTERM
     setContainerStatus "stopping"
-    echo "Stop signal received, stopping all modules..."
+    echo "Exiting... Cleaning up..."
+    echo "Stopping modules..."
     stopAllModules "$MODULE_DEPLOY_PATH" "$(( SHUTDOWN_TIMEOUT - 10 ))" || :
-    setContainerStatus "stopped"
     echo "All modules stopped."
-    trap - SIGTERM
-    exit 0
+    echo "Stopping background tasks..."
+    # shellcheck disable=SC2046 # Word splitting intentional
+    kill $(jobs -p)
+    echo "All background tasks stopped."
+    exitImmediately 0 "Goodbye."
 }
-
+trap onTerminate SIGTERM
 
 # ### Init
 setContainerStatus "init"
@@ -68,7 +78,6 @@ upgradeAllModules "$MODULE_DEPLOY_PATH" "$UPGRADE_MODULES" "$UPGRADE_MODULES_FOR
 # ### Start modules
 setContainerStatus "starting"
 
-trap onTerminate SIGTERM
 startAllModules "$MODULE_DEPLOY_PATH" || {
     echo "Some start operations failed, see logs above."
     exit 1
@@ -84,6 +93,4 @@ waitForAllModulesExit "$MODULE_DEPLOY_PATH" "5"
 # ### Exit
 setContainerStatus "stopped"
 
-echo "All modules have exited."
-trap - SIGTERM
-exit 0
+exitImmediately 0 "All modules have exited."
