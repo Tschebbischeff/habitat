@@ -12,8 +12,8 @@ set -euo pipefail
     cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"; cd ..
     cmdLine="$(tr '\0' ' ' < /proc/1/cmdline; echo)"
     tr '\0' ' ' < /proc/1/cmdline; echo
-    grep -P '^[^ ]*/supervisor +[^ ]*' < <(echo "$cmdLine") || echo "grep -P => $?"
-    grep -Pq '^[^ ]*/supervisor +[^ ]*' < <(echo "$cmdLine") || echo "grep -Pq => $?"
+    grep -P '^[^ ]* *[^ ]*/supervisor +[^ ]*' < <(echo "$cmdLine") || echo "grep -P => $?"
+    grep -Pq '^[^ ]* *[^ ]*/supervisor +[^ ]*' < <(echo "$cmdLine") || echo "grep -Pq => $?"
     echo "$?"
     if ! grep -Pq '^[^ ]*/supervisor +[^ ]*' < <(echo "$cmdLine"); then
         echo "Supervisor isn't running or not running as PID 1."
