@@ -28,13 +28,20 @@ stopModule() {
     (
         cd "$moduleWorkdir"
         prepEnvironment "$moduleName"
+        # shellcheck disable=SC2046 # Word splitting intentional
         runningServices="$(
             docker compose \
                 -f "./$moduleDir/compose.yml" \
                 --progress plain \
             ps \
                 --no-trunc \
-                --format "{{.ID}} {{.Name}}"
+                --format "{{.ID}} {{.Name}}" \
+            $(
+                docker compose \
+                    -f "./$moduleDir/compose.yml" \
+                    --progress plain \
+                config --services
+            )
         )"
         if [ -z "$runningServices" ]; then
             echo "'$moduleName' already stopped."

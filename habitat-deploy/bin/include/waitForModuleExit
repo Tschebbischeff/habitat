@@ -47,13 +47,20 @@ waitForModuleExit() {
         while [ "$(date +%s)" -lt "$restartUltimatum" ]; do
             runningServices=""
             while [ "$(date +%s)" -lt "$restartUltimatum" ] && [ -z "$runningServices" ]; do
+                # shellcheck disable=SC2046 # Word splitting intentional
                 runningServices="$(
                     docker compose \
                         -f "./$moduleDir/compose.yml" \
                         --progress plain \
                     ps \
                         --no-trunc \
-                        --format "{{.ID}} {{.Name}}"
+                        --format "{{.ID}} {{.Name}}" \
+                    $(
+                        docker compose \
+                            -f "./$moduleDir/compose.yml" \
+                            --progress plain \
+                        config --services
+                    )
                 )"
                 echo "$runningServices" >"$HABITAT_RUN_DIR/runningServices.$moduleName.txt"
             done
