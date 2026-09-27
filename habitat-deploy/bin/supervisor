@@ -78,7 +78,7 @@ startAllModules "$MODULE_DEPLOY_PATH" || {
 # ### Wait for containers to finish or for SIGTERM
 setContainerStatus "started"
 
-waitForAllModulesExit "$MODULE_DEPLOY_PATH"
+waitForAllModulesExit "$MODULE_DEPLOY_PATH" "5"
 
 
 # ### Exit

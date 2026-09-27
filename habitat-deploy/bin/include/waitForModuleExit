@@ -17,9 +17,10 @@ include parseModuleInfo
 
 waitForModuleExit() {
     # Args
-    local moduleWorkdir moduleName
+    local moduleWorkdir moduleName restartTimeout
     moduleWorkdir="$1"; shift
     moduleName="$1"; shift
+    restartTimeout="$1"; shift
     # Vars
     local moduleDir
     declare -A containerIdToName
@@ -40,37 +41,45 @@ waitForModuleExit() {
                 --no-trunc \
                 --format "{{.ID}} {{.Name}}"
         )
-        # shellcheck disable=SC2046 # Word splitting intentional
-        docker compose \
-            -f "./$moduleDir/compose.yml" \
-            --progress plain \
-        wait $(
+        restartUltimatum="$(date +%s)"
+        restartUltimatum="$(( restartUltimatum + restartTimeout ))"
+        while [ "$(date +%s)" -lt "$restartUltimatum" ]; do
+            # shellcheck disable=SC2046 # Word splitting intentional
             docker compose \
                 -f "./$moduleDir/compose.yml" \
                 --progress plain \
-            config --services
-        ) | while read -r line; do
-            for id in "${!containerIdToName[@]}"; do
-                line="${line//\"$id\"/\"$id\" (${containerIdToName[$id]})}"
-            done
-            echo "$line"
+            wait $(
+                docker compose \
+                    -f "./$moduleDir/compose.yml" \
+                    --progress plain \
+                config --services
+            ) | while read -r line; do
+                for id in "${!containerIdToName[@]}"; do
+                    line="${line//\"$id\"/\"$id\" (${containerIdToName[$id]})}"
+                done
+                echo "$line"
+            done || {
+                restartUltimatum="$(date +%s)"
+                restartUltimatum="$(( restartUltimatum + restartTimeout ))"
+            }
         done
-        exit "$?"
+        exit 0
     ) || return "$?"
     return 0
 }
 
 waitForAllModulesExit() {
     # Args
-    local moduleWorkdir
+    local moduleWorkdir restartTimeout
     moduleWorkdir="$1"; shift
+    restartTimeout="$1"; shift
     # Vars
     local exitCode moduleName jobPID
     declare -A moduleByPID
     exitCode="0"
     # Body
     for moduleName in "${!MODULE_DIRS[@]}"; do
-        waitForModuleExit "$moduleWorkdir" "$moduleName" &
+        waitForModuleExit "$moduleWorkdir" "$moduleName" "$restartTimeout" &
         moduleByPID[$!]="$moduleName"
     done
     # shellcheck disable=SC2046 # Word splitting intentional
