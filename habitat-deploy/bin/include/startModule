@@ -55,7 +55,7 @@ startAllModules() {
         moduleByPID[$!]="$moduleName"
     done
     # shellcheck disable=SC2046 # Word splitting intentional
-    for jobPID in $(jobs -p); do
+    for jobPID in "${!moduleByPID[@]}"; do
         wait "$jobPID" || {
             echo "Starting '${moduleByPID[$jobPID]}' failed with exit code '$?'."
             exitCode="1"

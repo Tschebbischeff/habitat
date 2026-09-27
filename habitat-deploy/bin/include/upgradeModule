@@ -96,7 +96,7 @@ upgradeAllModules() {
     done
     if [ "$sequentialMode" != "yes" ]; then
         # shellcheck disable=SC2046 # Word splitting intentional
-        for jobPID in $(jobs -p); do
+        for jobPID in "${!moduleByPID[@]}"; do
             wait "$jobPID" || {
                 echo "Upgrading '${moduleByPID[$jobPID]}' failed with exit code '$?'."
                 exitCode="1"
