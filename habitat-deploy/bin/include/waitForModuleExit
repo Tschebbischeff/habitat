@@ -41,9 +41,23 @@ waitForModuleExit() {
                 --no-trunc \
                 --format "{{.ID}} {{.Name}}"
         )
+        exitCode="0"
         restartUltimatum="$(date +%s)"
         restartUltimatum="$(( restartUltimatum + restartTimeout ))"
         while [ "$(date +%s)" -lt "$restartUltimatum" ]; do
+            runningServices=""
+            while [ "$(date +%s)" -lt "$restartUltimatum" ] && [ -z "$runningServices" ]; do
+                runningServices="$(
+                    docker compose \
+                        -f "./$moduleDir/compose.yml" \
+                        --progress plain \
+                    ps \
+                        -a \
+                        --no-trunc \
+                        --format "{{.ID}} {{.Name}}"
+                )"
+            done
+            [ -z "$runningServices" ] && continue
             # shellcheck disable=SC2046 # Word splitting intentional
             docker compose \
                 -f "./$moduleDir/compose.yml" \
@@ -58,12 +72,12 @@ waitForModuleExit() {
                     line="${line//\"$id\"/\"$id\" (${containerIdToName[$id]})}"
                 done
                 echo "$line"
-            done || {
-                restartUltimatum="$(date +%s)"
-                restartUltimatum="$(( restartUltimatum + restartTimeout ))"
-            }
+            done
+            exitCode="$?"
+            restartUltimatum="$(date +%s)"
+            restartUltimatum="$(( restartUltimatum + restartTimeout ))"
         done
-        exit 0
+        exit "$exitCode"
     ) || return "$?"
     return 0
 }
