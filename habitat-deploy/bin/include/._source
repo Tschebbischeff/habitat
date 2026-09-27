@@ -10,16 +10,18 @@ set -euo pipefail
     # shellcheck disable=SC2034  # Checked within imported scripts
     HABITAT_WORKDIR="$(pwd)"
     cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"; cd ..
-    grep -P '^[^ ]*/supervisor +[^ ]*' < <(tr '\0' ' ' < /proc/1/cmdline) || echo "grep -P => $?"
-    grep -Pq '^[^ ]*/supervisor +[^ ]*' < <(tr '\0' ' ' < /proc/1/cmdline) || echo "grep -Pq => $?"
+    cmdLine="$(tr '\0' ' ' < /proc/1/cmdline; echo)"
+    grep -P '^[^ ]*/supervisor +[^ ]*' < <(echo "$cmdLine") || echo "grep -P => $?"
+    grep -Pq '^[^ ]*/supervisor +[^ ]*' < <(echo "$cmdLine") || echo "grep -Pq => $?"
     echo "$?"
-    if ! grep -Pq '^[^ ]*/supervisor +[^ ]*' < <(tr '\0' ' ' < /proc/1/cmdline); then
+    if ! grep -Pq '^[^ ]*/supervisor +[^ ]*' < <(echo "$cmdLine"); then
         echo "Supervisor isn't running or not running as PID 1."
         exit 1
     fi
+    unset cmdline
     # shellcheck disable=SC2034  # Checked within imported scripts
     # shellcheck disable=SC2009  # pgrep does not show arguments
-    HABITAT_RUN_DIR="$(grep -Po '^[^ ]*/supervisor +\K[^ ]*' < <(tr '\0' ' ' < /proc/1/cmdline))"
+    HABITAT_RUN_DIR="$(grep -Po '^[^ ]*/supervisor +\K[^ ]*' < <(echo "$cmdLine"))"
 }
 
 include() {
