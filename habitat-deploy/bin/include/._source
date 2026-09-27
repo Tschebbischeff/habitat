@@ -11,11 +11,10 @@ set -euo pipefail
     HABITAT_WORKDIR="$(pwd)"
     cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"; cd ..
     # shellcheck disable=SC2009  # pgrep does not show arguments
-    ps -o pid,args | grep -P '^ *1 +.*/supervisor +[^ ]*'
-    ps -o pid,args | grep -Pq '^ *1 +.*/supervisor +[^ ]*' || {
+    if ! ps -o pid,args | grep -Pq '^ *1 +.*/supervisor +[^ ]*'; then
         echo "Supervisor isn't running or not running as PID 1."
         exit 1
-    }
+    fi
     # shellcheck disable=SC2034  # Checked within imported scripts
     # shellcheck disable=SC2009  # pgrep does not show arguments
     HABITAT_RUN_DIR="$(ps -o pid,args | grep -Po '^ *1 +.*/supervisor +\K[^ ]*')"
