@@ -94,9 +94,16 @@ waitForModuleExit() {
             done
             exitCode="$?"
             exitedOnce="_"
-            echo "Waiting ${restartTimeout}s for '$moduleName' to restart..."
+            timeout="$restartTimeout"
+            if [ -f "$HABITAT_RUN_DIR/.hotswapping" ]; then
+                timeout="300"
+                echo "Hotswap detected, waiting ${timeout}s for '$moduleName' to restart..."
+            else
+                echo "Waiting ${timeout}s for '$moduleName' to restart..."
+            fi
             restartUltimatum="$(date +%s)"
-            restartUltimatum="$(( restartUltimatum + restartTimeout ))"
+            restartUltimatum="$(( restartUltimatum + timeout ))"
+            unset timeout
         done
         exit "$exitCode"
     ) || return "$?"

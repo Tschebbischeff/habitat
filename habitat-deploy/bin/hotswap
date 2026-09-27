@@ -29,6 +29,7 @@ exitImmediately() {
 onTerminate() {
     trap '' SIGTERM
     echo "Exiting... Cleaning up..."
+    [ -f "$HABITAT_RUN_DIR/.hotswapping" ] && rm "$HABITAT_RUN_DIR/.hotswapping"
     echo "Stopping background tasks..."
     # shellcheck disable=SC2046 # Word splitting intentional
     kill $(jobs -p)
@@ -65,9 +66,11 @@ upgradeAllModules "$MODULE_DEPLOY_PATH" "$UPGRADE_MODULES" "$UPGRADE_MODULES_FOR
 
 # ### Start modules
 
+date +%s >"$HABITAT_RUN_DIR/.hotswapping"
 startAllModules "$MODULE_DEPLOY_PATH" || {
     echo "Some start operations failed, see logs above."
     exit 1
 }
+rm "$HABITAT_RUN_DIR/.hotswapping"
 
 exitImmediately
