@@ -68,7 +68,7 @@ updateOrInitAllModules() {
     moduleWorkdir="$1"; shift
     updateAllowed="$1"; shift
     # Vars
-    local exitCode moduleName jobPID
+    local exitCode moduleName jobPID jobReturnCode
     declare -A moduleByPID
     exitCode="0"
     # Body
@@ -80,12 +80,12 @@ updateOrInitAllModules() {
     # shellcheck disable=SC2046 # Word splitting intentional
     for jobPID in $(jobs -p); do
         moduleName="${moduleByPID[$jobPID]}"
-        wait "$jobPID"
-        exitCode="$?"
+        jobReturnCode="0"
+        wait "$jobPID" || jobReturnCode="$?"
         # shellcheck disable=SC2034  # Scoped outside included function
-        [ "$exitCode" -eq 0 ] && MODULE_UPDATED[$moduleName]="_"
-        [ "$exitCode" -eq 0 ] || [ "$exitCode" -eq 125 ] || {
-            echo "Updating or initializing '$moduleName' failed with exit code '$exitCode'."
+        [ "$jobReturnCode" -eq 0 ] && MODULE_UPDATED[$moduleName]="_"
+        [ "$jobReturnCode" -eq 0 ] || [ "$jobReturnCode" -eq 125 ] || {
+            echo "Updating or initializing '$moduleName' failed with exit code '$jobReturnCode'."
             exitCode="1"
         }
     done
