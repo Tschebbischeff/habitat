@@ -2,25 +2,20 @@
 
 set -euo pipefail
 
+
 # Include File Header
 
 [[ -v "HABITAT_INCLUDE[__main__]" ]] || { echo "Included file potentially executed directly. Bailing."; exit 1; }
 [[ -v "HABITAT_INCLUDE[$(basename "${BASH_SOURCE[0]}" | tr '.-' '_')]" ]] && return 0
 HABITAT_INCLUDE[$(basename "${BASH_SOURCE[0]}" | tr '.-' '_')]="_"
-echo "Loading '$(basename "${BASH_SOURCE[0]}")'..."
 
-# Public Variables
-
-# shellcheck disable=SC2009  # pgrep does not show arguments
-STATUS_FILE="$(ps -o pid,args | grep -Po '^ *1 +.*/supervisor +\K[^ ]*')"
-[ -f "$STATUS_FILE" ] || exit 1
 
 # Public Functions
 
 setContainerStatus() {
-    echo "$1" >"$STATUS_FILE"
+    echo "$1" >"$HABITAT_RUN_DIR/status.txt"
 }
 
 getContainerStatus() {
-    cat "$STATUS_FILE"
+    cat "$HABITAT_RUN_DIR/status.txt"
 }
