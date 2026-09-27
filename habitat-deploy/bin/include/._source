@@ -6,7 +6,7 @@ set -euo pipefail
     HABITAT_INCLUDE_MAIN="_"
     declare -gA HABITAT_INCLUDE
     # shellcheck disable=SC2034  # Checked within imported scripts
-    HABITAT_INCLUDE["__main__"]="_"
+    HABITAT_INCLUDE[__main__]="_"
     # shellcheck disable=SC2034  # Checked within imported scripts
     HABITAT_WORKDIR="$(pwd)"
     cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"; cd ..
