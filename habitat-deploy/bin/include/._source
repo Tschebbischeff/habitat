@@ -4,6 +4,8 @@ set -euo pipefail
 
 [[ -v HABITAT_INCLUDE_MAIN ]] || {
     HABITAT_INCLUDE_MAIN="_"
+    export DOCKER_CONFIG="/tmp/.docker"
+    export COMPOSE_BAKE="true"
     declare -gA HABITAT_INCLUDE
     # shellcheck disable=SC2034  # Checked within imported scripts
     HABITAT_INCLUDE[__main__]="_"

@@ -83,8 +83,6 @@ echo "Fixing permissions on /habitat-deploy"
 }
 
 # Prepare for running deployment script
-export DOCKER_CONFIG="/tmp/.docker"
-export COMPOSE_BAKE="true"
 runDir="/run/habitat/$(cat "/proc/sys/kernel/random/uuid")"
 mkdir -p "$runDir"
 chown -R "$RUN_AS_USER:$RUN_AS_GROUP" "$runDir"
