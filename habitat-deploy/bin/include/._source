@@ -2,14 +2,21 @@
 
 set -euo pipefail
 
-[[ ! -v HABITAT_INCLUDE ]] || declare -gA HABITAT_INCLUDE
-[[ ! -v HABITAT_WORKDIR ]] || HABITAT_WORKDIR="$(pwd)"
-cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"; cd ..
-# shellcheck disable=SC2034  # Checked within imported scripts
-HABITAT_INCLUDE["__main__"]="_"
+[[ -v HABITAT_INCLUDE_MAIN ]] || {
+    HABITAT_INCLUDE_MAIN="_"
+    declare -gA HABITAT_INCLUDE
+    # shellcheck disable=SC2034  # Checked within imported scripts
+    HABITAT_INCLUDE["__main__"]="_"
+    # shellcheck disable=SC2034  # Checked within imported scripts
+    HABITAT_WORKDIR="$(pwd)"
+    cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"; cd ..
+}
+
 include() {
+    # Args
     local incName
     incName="$1"; shift
+    # Body
     # shellcheck disable=SC1090  # Intended non-constant source
     . "./include/$incName" "$@"
 }
