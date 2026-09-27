@@ -10,7 +10,9 @@ set -euo pipefail
     # shellcheck disable=SC2034  # Checked within imported scripts
     HABITAT_WORKDIR="$(pwd)"
     cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"; cd ..
-    tr '\0' ' ' < /proc/1/cmdline
+    grep -P '^[^ ]*/supervisor +[^ ]*' < <(tr '\0' ' ' < /proc/1/cmdline)
+    grep -Pq '^[^ ]*/supervisor +[^ ]*' < <(tr '\0' ' ' < /proc/1/cmdline)
+    echo "$?"
     if ! grep -Pq '^[^ ]*/supervisor +[^ ]*' < <(tr '\0' ' ' < /proc/1/cmdline); then
         echo "Supervisor isn't running or not running as PID 1."
         exit 1
