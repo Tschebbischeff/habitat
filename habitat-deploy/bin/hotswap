@@ -11,14 +11,10 @@ set -euo pipefail
 
 # ### Includes
 
-include containerStatus
-include prepEnvironment
 include parseModuleInfo
 include updateOrInitModule
 include upgradeModule
 include startModule
-include stopModule
-include waitForModuleExit
 
 
 # ### Init
