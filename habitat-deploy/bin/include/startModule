@@ -53,12 +53,12 @@ startAllModules() {
     # Body
     for moduleName in "${!MODULE_DIRS[@]}"; do
         startModule "$moduleWorkdir" "$moduleName" &
-        moduleByPID["$!"]="$moduleName"
+        moduleByPID[$!]="$moduleName"
     done
     # shellcheck disable=SC2046 # Word splitting intentional
     for jobPID in $(jobs -p); do
         wait "$jobPID" || {
-            echo "Starting '${moduleByPID["$jobPID"]}' failed with exit code '$?'."
+            echo "Starting '${moduleByPID[$jobPID]}' failed with exit code '$?'."
             exitCode="1"
         }
     done

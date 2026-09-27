@@ -59,7 +59,6 @@ updateOrInitModule() {
     ) || exitCode="$?"
     # shellcheck disable=SC2034  # Scoped outside included function
     [ "$exitCode" -eq 0 ] && MODULE_UPDATED[$moduleName]="_"
-    [ "$exitCode" -eq 125 ] && exitCode="0"
     return "$exitCode"
 }
 
@@ -74,13 +73,19 @@ updateOrInitAllModules() {
     exitCode="0"
     # Body
     for moduleName in "${!MODULE_DIRS[@]}"; do
+        MODULE_UPDATED[$moduleName]="_"
         updateOrInitModule "$moduleWorkdir" "$moduleName" "$updateAllowed" &
-        moduleByPID["$!"]="$moduleName"
+        moduleByPID[$!]="$moduleName"
     done
     # shellcheck disable=SC2046 # Word splitting intentional
     for jobPID in $(jobs -p); do
-        wait "$jobPID" || {
-            echo "Updating or initializing '${moduleByPID["$jobPID"]}' failed with exit code '$?'."
+        moduleName="${moduleByPID[$jobPID]}"
+        wait "$jobPID"
+        exitCode="$?"
+        # shellcheck disable=SC2034  # Scoped outside included function
+        [ "$exitCode" -eq 0 ] && MODULE_UPDATED[$moduleName]="_"
+        [ "$exitCode" -eq 0 ] || [ "$exitCode" -eq 125 ] || {
+            echo "Updating or initializing '$moduleName' failed with exit code '$exitCode'."
             exitCode="1"
         }
     done

@@ -72,12 +72,12 @@ waitForAllModulesExit() {
     # Body
     for moduleName in "${!MODULE_DIRS[@]}"; do
         waitForModuleExit "$moduleWorkdir" "$moduleName" &
-        moduleByPID["$!"]="$moduleName"
+        moduleByPID[$!]="$moduleName"
     done
     # shellcheck disable=SC2046 # Word splitting intentional
     for jobPID in $(jobs -p); do
         wait "$jobPID" || {
-            echo "Module '${moduleByPID["$jobPID"]}' exited with exit code '$?'."
+            echo "Module '${moduleByPID[$jobPID]}' exited with exit code '$?'."
             exitCode="1"
         }
     done

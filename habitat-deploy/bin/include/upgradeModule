@@ -86,7 +86,7 @@ upgradeAllModules() {
     for moduleName in "${!MODULE_DIRS[@]}"; do
         upgradeModule "$moduleWorkdir" "$moduleName" "$upgradeAllowed" "$forceBuild" &
         jobPID="$!"
-        moduleByPID["$jobPID"]="$moduleName"
+        moduleByPID[$jobPID]="$moduleName"
         if [ "$sequentialMode" == "yes" ]; then
             wait "$jobPID" || {
                 echo "Upgrading '${moduleByPID["$jobPID"]}' failed with exit code '$?'."
@@ -99,7 +99,7 @@ upgradeAllModules() {
         # shellcheck disable=SC2046 # Word splitting intentional
         for jobPID in $(jobs -p); do
             wait "$jobPID" || {
-                echo "Upgrading '${moduleByPID["$jobPID"]}' failed with exit code '$?'."
+                echo "Upgrading '${moduleByPID[$jobPID]}' failed with exit code '$?'."
                 exitCode="1"
             }
         done
