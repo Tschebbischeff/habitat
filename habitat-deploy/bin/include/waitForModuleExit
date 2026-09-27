@@ -52,7 +52,6 @@ waitForModuleExit() {
                         -f "./$moduleDir/compose.yml" \
                         --progress plain \
                     ps \
-                        -a \
                         --no-trunc \
                         --format "{{.ID}} {{.Name}}"
                 )"
