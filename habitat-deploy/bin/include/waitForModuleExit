@@ -55,6 +55,7 @@ waitForModuleExit() {
                         --no-trunc \
                         --format "{{.ID}} {{.Name}}"
                 )"
+                echo "$runningServices" >"$HABITAT_RUN_DIR/runningServices.$moduleName.txt"
             done
             [ -z "$runningServices" ] && {
                 if [ -z "$exitedOnce" ]; then
@@ -86,7 +87,7 @@ waitForModuleExit() {
             done
             exitCode="$?"
             exitedOnce="_"
-            echo "Waiting '$restartTimeout's for '$moduleName' to restart..."
+            echo "Waiting ${restartTimeout}s for '$moduleName' to restart..."
             restartUltimatum="$(date +%s)"
             restartUltimatum="$(( restartUltimatum + restartTimeout ))"
         done
