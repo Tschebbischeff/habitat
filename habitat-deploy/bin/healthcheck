@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
-. ./include/._source
+. "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/include/._source"
 
 # ### Includes
 
