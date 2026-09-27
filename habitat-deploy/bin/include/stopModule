@@ -28,6 +28,18 @@ stopModule() {
     (
         cd "$moduleWorkdir"
         prepEnvironment "$moduleName"
+        runningServices="$(
+            docker compose \
+                -f "./$moduleDir/compose.yml" \
+                --progress plain \
+            ps \
+                --no-trunc \
+                --format "{{.ID}} {{.Name}}"
+        )"
+        if [ -z "$runningServices" ]; then
+            echo "'$moduleName' already stopped."
+            exit 0
+        fi
         echo "Stopping '$moduleName' (Timeout: ${shutdownTimeout}s)..."
         docker compose \
             -f "./$moduleDir/compose.yml" \
