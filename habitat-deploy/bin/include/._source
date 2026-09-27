@@ -11,6 +11,7 @@ set -euo pipefail
     HABITAT_WORKDIR="$(pwd)"
     cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"; cd ..
     cmdLine="$(tr '\0' ' ' < /proc/1/cmdline; echo)"
+    tr '\0' ' ' < /proc/1/cmdline; echo
     grep -P '^[^ ]*/supervisor +[^ ]*' < <(echo "$cmdLine") || echo "grep -P => $?"
     grep -Pq '^[^ ]*/supervisor +[^ ]*' < <(echo "$cmdLine") || echo "grep -Pq => $?"
     echo "$?"
