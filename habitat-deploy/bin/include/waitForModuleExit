@@ -29,7 +29,6 @@ waitForModuleExit() {
     (
         cd "$moduleWorkdir"
         prepEnvironment "$moduleName"
-        echo "Waiting for '$moduleName' to exit..."
         while read -r id name; do
             [ -n "$id" ] && [ -n "$name" ] && containerIdToName["$id"]="$name"
         done < <(
@@ -42,6 +41,7 @@ waitForModuleExit() {
                 --format "{{.ID}} {{.Name}}"
         )
         exitCode="0"
+        exitedOnce=""
         restartUltimatum="$(date +%s)"
         restartUltimatum="$(( restartUltimatum + restartTimeout ))"
         while [ "$(date +%s)" -lt "$restartUltimatum" ]; do
@@ -57,7 +57,19 @@ waitForModuleExit() {
                         --format "{{.ID}} {{.Name}}"
                 )"
             done
-            [ -z "$runningServices" ] && continue
+            [ -z "$runningServices" ] && {
+                if [ -z "$exitedOnce" ]; then
+                    echo "'$moduleName' did not start within the time limit."
+                else
+                    echo "'$moduleName' did not restart within the time limit."
+                fi
+                continue
+            }
+            if [ -z "$exitedOnce" ]; then
+                echo "Waiting for '$moduleName' to exit..."
+            else
+                echo "'$moduleName' restarted, waiting for it to exit again..."
+            fi
             # shellcheck disable=SC2046 # Word splitting intentional
             docker compose \
                 -f "./$moduleDir/compose.yml" \
@@ -74,6 +86,8 @@ waitForModuleExit() {
                 echo "$line"
             done
             exitCode="$?"
+            exitedOnce="_"
+            echo "Waiting '$restartTimeout's for '$moduleName' to restart..."
             restartUltimatum="$(date +%s)"
             restartUltimatum="$(( restartUltimatum + restartTimeout ))"
         done
