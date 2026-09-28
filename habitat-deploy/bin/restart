@@ -60,7 +60,7 @@ parseModuleInfo "$MODULE_LIST"
 # shellcheck disable=SC2155  # Return value is of no interest
 export HABITAT_APP_MODULES="$(printf ',%s' "${!MODULE_REPOS[@]}" | grep -Po '^,\K.*')"
 # shellcheck disable=SC2155  # Return value is of no interest
-export HABITAT_APP_SESSION_ID="$(cat "/proc/sys/kernel/random/uuid")"
+export HABITAT_APP_SESSION_ID # ="$(cat "/proc/sys/kernel/random/uuid")"
 
 
 # ### Clone and/or Update modules
