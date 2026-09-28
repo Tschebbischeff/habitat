@@ -134,7 +134,7 @@ waitExitModules() {
     # Body
     echo "Waiting for modules to exit: $(printf "%s, " "${moduleList[@]}" | sed 's/, $//')"
     for moduleName in "${moduleList[@]}"; do
-        waitForModuleExit "$moduleWorkdir" "$moduleName" "$restartTimeout" &
+        waitExitModule "$moduleWorkdir" "$moduleName" "$restartTimeout" &
         moduleByPID[$!]="$moduleName"
     done
     # shellcheck disable=SC2046 # Word splitting intentional
