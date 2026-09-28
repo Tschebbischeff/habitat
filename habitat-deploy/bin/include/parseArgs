@@ -34,8 +34,6 @@ parseArgs() {
         else
             # Positional arguments
             ARGS_POSITIONAL+=("$1")
-            { [ -z "$appname" ] && { appname="$1"; true; } } ||
-            { :; }
         fi
         shift
     done
