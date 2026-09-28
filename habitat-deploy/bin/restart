@@ -54,7 +54,7 @@ trap onTerminate SIGTERM
 
 # ### Init
 
-parseModuleInfo "$MODULE_LIST"
+parseModuleInfo "$MODULE_LIST" "$HOTSWAP_ENABLED"
 # shellcheck disable=SC2155  # Return value is of no interest
 export HABITAT_APP_MODULES="$(printf ',%s' "${!MODULE_REPOS[@]}" | grep -Po '^,\K.*')"
 # shellcheck disable=SC2155  # Return value is of no interest
