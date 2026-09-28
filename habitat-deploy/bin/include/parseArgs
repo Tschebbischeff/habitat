@@ -23,7 +23,6 @@ parseArgs() {
     # Body
     while [ "$#" -gt "0" ]; do
         [ "$1" == "--" ] && shift && break
-        [ "$1" == "--help" ] && { $MUSTELIDAE_SHOW_HELP; exit "$?"; }
         if [[ "$1" =~ ^-.* ]]; then
             # Flags
             argName="${1#-}"
