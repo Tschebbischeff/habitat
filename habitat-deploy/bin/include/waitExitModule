@@ -112,7 +112,7 @@ waitExitModule() {
             done
             exitCode="$?"
             exitedOnce="_"
-            [ -n "$watchJobPID" ] && { kill "$watchJobPID"; watchJobPID=""; }
+            [ -n "$watchJobPID" ] && { kill "$watchJobPID" &>/dev/null || true; watchJobPID=""; }
             timeout="$restartTimeout"
             if [ -f "$HABITAT_RUN_DIR/.restarting" ]; then
                 timeout="300"
