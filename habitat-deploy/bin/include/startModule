@@ -55,7 +55,7 @@ startModules() {
         moduleList+=("$1")
         shift
     done
-    if [ "${#moduleList[@]}" -eq 0 ]; then
+    if [[ ! -v "moduleList" ]]; then
         moduleList=("${!MODULE_DIRS[@]}")
     fi
     # Vars
