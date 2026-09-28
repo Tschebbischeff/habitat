@@ -29,8 +29,6 @@ ARGS_UPDATE="$(getFlagExists update)"
 ARGS_UPGRADE="$(getFlagExists upgrade)"
 declare -a ARGS_MODULES=("${ARGS_POSITIONAL[@]}")
 
-[ -n "$ARGS_HOTSWAP" ] && ARGS_UPDATE="_"
-
 
 # ### Exit function
 
@@ -65,7 +63,7 @@ export HABITAT_APP_SESSION_ID # ="$(cat "/proc/sys/kernel/random/uuid")"
 
 # ### Clone and/or Update modules
 
-if [ -n "$ARGS_UPDATE" ]; then
+if [ -n "$ARGS_UPDATE" ] || [ -n "$ARGS_HOTSWAP" ]; then
     updateOrInitModules "$MODULE_DEPLOY_PATH" "$UPDATE_MODULES" "${ARGS_MODULES[@]}" || {
         echo "Some updates or initializations failed, see logs above."
         exit 1
@@ -86,10 +84,14 @@ fi
 # ### Start modules
 
 date +%s >"$HABITAT_RUN_DIR/.restarting"
-startModules "$MODULE_DEPLOY_PATH" "${ARGS_MODULES[@]}" || {
-    echo "Some start operations failed, see logs above."
-    exit 1
-}
+if [ -z "$ARGS_HOTSWAP" ]; then
+    startModules "$MODULE_DEPLOY_PATH" "${ARGS_MODULES[@]}" || {
+        echo "Some start operations failed, see logs above."
+        exit 1
+    }
+else
+    : # TODO: Only restart config services, hotswapping other things works through docker's watch mode and is defined by services
+fi
 rm "$HABITAT_RUN_DIR/.restarting"
 
 exitImmediately

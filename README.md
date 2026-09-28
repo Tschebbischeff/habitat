@@ -210,6 +210,7 @@ At **build-time** the deployment project requires the following environment vari
 | `NETWORK_POOL` | The IP range in CIDR notation for the default network used by deployment containers. | `172.32.0.0/16` | `172.31.0.0/16` |
 | `MODULE_DEPLOY_PATH` | An absolute path to clone the selected modules to. Must be absolute, so that path matching works correctly between the Host and the deployment container. | `/foo/bar/habitat-modules` | `$PWD/habitat-modules` |
 | `MODULE_LIST` | A comma separated list of module names that are started in the same docker namespace (same project name) as this module. | `path,thicket,stash,vista` | `path,scent,vista` |
+| `HOTSWAP_ENABLED` | A comma separated list of module names that are started in watch mode. Modules themselves determine whether the services support hotswapping or not. | `path,scent,vista` | *Empty* |
 | `MODULE_ENV_FILE` | Path to an env-file containing variables that should be passed to modules. | `/foo/bar/module-config.env` | `./_.env` |
 
 At **run-time** the deployment container additionally requires the following environment variables:

@@ -25,10 +25,11 @@ waitExitModule() {
     moduleName="$1"; shift
     restartTimeout="$1"; shift
     # Vars
-    local moduleDir
+    local moduleDir hotswapEnabled
     declare -A containerIdToName
     moduleDir="${MODULE_DIRS[$moduleName]:-}"
-    [ -n "$moduleDir" ] || { echo "Missing metadata for module '$moduleName'."; return 1; }
+    hotswapEnabled="${MODULE_HOTSWAP_ENABLED[$moduleName]:-}"
+    { [ -n "$moduleDir" ] && [ -n "$hotswapEnabled" ]; } || { echo "Missing metadata for module '$moduleName'."; return 1; }
     # Body
     (
         cd "$moduleWorkdir"
@@ -84,7 +85,7 @@ waitExitModule() {
             docker compose \
                 -f "./$moduleDir/compose.yml" \
                 --progress plain \
-            wait $(
+            $({ [ "$hotswapEnabled" == "yes" ] && echo "watch --no-up --quiet"; } || echo "wait") $(
                 docker compose \
                     -f "./$moduleDir/compose.yml" \
                     --progress plain \

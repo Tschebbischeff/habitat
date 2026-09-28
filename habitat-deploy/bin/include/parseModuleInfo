@@ -14,18 +14,21 @@ HABITAT_INCLUDE[$(basename "${BASH_SOURCE[0]}" | tr '.-' '_')]="_"
 
 declare -gA MODULE_REPOS
 declare -gA MODULE_DIRS
+declare -gA MODULE_HOTSWAP_ENABLED
 
 
 # Public Functions
 
 parseModuleInfo() {
     # Args
-    local moduleList
+    local moduleList hotswapEnabled
     moduleList="$1"; shift
+    hotswapEnabled="$1"; shift
     # Vars
     local moduleSpec moduleRepoUrl moduleShortName
-    declare -a tmp_module_list
+    declare -a tmp_module_list tmp_hotswap_enabled
     mapfile -t tmp_module_list < <(printf "%s" "$moduleList" | sed -E 's/([^\\]|^),/\1\n/g')
+    mapfile -t tmp_hotswap_enabled < <(printf "%s" "$hotswapEnabled" | sed -E 's/([^\\]|^),/\1\n/g')
     # Body
     for moduleSpec in "${tmp_module_list[@]}"; do
         moduleRepoUrl="$(echo "$moduleSpec" | grep -Po '^[ \t]*\K.*[^ \t]')"
@@ -45,5 +48,7 @@ parseModuleInfo() {
         MODULE_REPOS[$moduleShortName]="$moduleRepoUrl"
         # shellcheck disable=SC2034  # Scoped outside included function
         MODULE_DIRS[$moduleShortName]="$(basename "$(git ls-remote --get-url "$moduleRepoUrl")" .git)"
+        # shellcheck disable=SC2034  # Scoped outside included function
+        MODULE_HOTSWAP_ENABLED[$moduleShortName]="$({ inArray "$moduleShortName" "${tmp_hotswap_enabled[@]}" && echo "yes"; } || echo "no")"
     done
 }

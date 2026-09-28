@@ -31,3 +31,10 @@ include() {
     # shellcheck disable=SC1090  # Intended non-constant source
     . "./include/$incName" "$@"
 }
+
+inArray() {
+    local search
+    search="$1"; shift
+    for elem in "$@"; do [ "$search" == "$elem" ] && return 0; done
+    return 1
+}
