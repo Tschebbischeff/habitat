@@ -4,7 +4,11 @@ set -euo pipefail
 
 [[ -v HABITAT_INCLUDE_MAIN ]] || {
     HABITAT_INCLUDE_MAIN="_"
-    export DOCKER_CONFIG="/tmp/.docker"
+    mkdir -p "/tmp/habitat"
+    export HOME="/tmp/habitat"
+    export XDG_CONFIG_HOME="/tmp/habitat/.config"
+    export XDG_DATA_HOME="/tmp/.local/share"
+    export DOCKER_CONFIG="/tmp/habitat/.docker"
     export COMPOSE_BAKE="true"
     declare -gA HABITAT_INCLUDE
     # shellcheck disable=SC2034  # Checked within imported scripts
