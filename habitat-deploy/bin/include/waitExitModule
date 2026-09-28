@@ -25,10 +25,11 @@ waitExitModule() {
     moduleName="$1"; shift
     restartTimeout="$1"; shift
     # Vars
-    local moduleDir hotswapEnabled
+    local moduleDir hotswapEnabled watchJobPID
     declare -A containerIdToName
     moduleDir="${MODULE_DIRS[$moduleName]:-}"
     hotswapEnabled="${MODULE_HOTSWAP_ENABLED[$moduleName]:-}"
+    watchJobPID=""
     { [ -n "$moduleDir" ] && [ -n "$hotswapEnabled" ]; } || { echo "Missing metadata for module '$moduleName'."; return 1; }
     # Body
     (
@@ -81,11 +82,24 @@ waitExitModule() {
             else
                 echo "'$moduleName' restarted, waiting for it to exit again..."
             fi
+            if [ "$hotswapEnabled" == "yes" ]; then
+                # shellcheck disable=SC2046 # Word splitting intentional
+                docker compose \
+                    -f "./$moduleDir/compose.yml" \
+                    --progress plain \
+                watch --no-up --quiet $(
+                    docker compose \
+                        -f "./$moduleDir/compose.yml" \
+                        --progress plain \
+                    config --services
+                ) &
+                watchJobPID="$!"
+            fi
             # shellcheck disable=SC2046 # Word splitting intentional
             docker compose \
                 -f "./$moduleDir/compose.yml" \
                 --progress plain \
-            $({ [ "$hotswapEnabled" == "yes" ] && echo "watch --no-up --quiet"; } || echo "wait") $(
+            wait $(
                 docker compose \
                     -f "./$moduleDir/compose.yml" \
                     --progress plain \
@@ -98,6 +112,7 @@ waitExitModule() {
             done
             exitCode="$?"
             exitedOnce="_"
+            [ -n "$watchJobPID" ] && { kill "$watchJobPID"; watchJobPID=""; }
             timeout="$restartTimeout"
             if [ -f "$HABITAT_RUN_DIR/.restarting" ]; then
                 timeout="300"
