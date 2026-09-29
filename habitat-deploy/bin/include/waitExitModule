@@ -25,12 +25,10 @@ waitExitModule() {
     moduleName="$1"; shift
     restartTimeout="$1"; shift
     # Vars
-    local moduleDir hotswapEnabled watchJobPID
+    local moduleDir
     declare -A containerIdToName
     moduleDir="${MODULE_DIRS[$moduleName]:-}"
-    hotswapEnabled="${MODULE_HOTSWAP_ENABLED[$moduleName]:-}"
-    watchJobPID=""
-    { [ -n "$moduleDir" ] && [ -n "$hotswapEnabled" ]; } || { echo "Missing metadata for module '$moduleName'."; return 1; }
+    [ -n "$moduleDir" ] || { echo "Missing metadata for module '$moduleName'."; return 1; }
     # Body
     (
         cd "$moduleWorkdir"
@@ -82,19 +80,6 @@ waitExitModule() {
             else
                 echo "'$moduleName' restarted, waiting for it to exit again..."
             fi
-            if [ "$hotswapEnabled" == "yes" ]; then
-                # shellcheck disable=SC2046 # Word splitting intentional
-                docker compose \
-                    -f "./$moduleDir/compose.yml" \
-                    --progress plain \
-                watch --no-up --quiet $(
-                    docker compose \
-                        -f "./$moduleDir/compose.yml" \
-                        --progress plain \
-                    config --services
-                ) &
-                watchJobPID="$!"
-            fi
             # shellcheck disable=SC2046 # Word splitting intentional
             docker compose \
                 -f "./$moduleDir/compose.yml" \
@@ -112,11 +97,10 @@ waitExitModule() {
             done
             exitCode="$?"
             exitedOnce="_"
-            [ -n "$watchJobPID" ] && { kill "$watchJobPID" &>/dev/null || true; watchJobPID=""; }
             timeout="$restartTimeout"
             if [ -f "$HABITAT_RUN_DIR/.restarting" ]; then
                 timeout="300"
-                echo "Hotswap detected, waiting ${timeout}s for '$moduleName' to restart..."
+                echo "Intentional restart detected, waiting ${timeout}s for '$moduleName' to restart..."
             else
                 echo "Waiting ${timeout}s for '$moduleName' to restart..."
             fi

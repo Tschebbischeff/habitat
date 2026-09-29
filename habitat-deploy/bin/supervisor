@@ -17,6 +17,7 @@ include updateOrInitModule
 include upgradeModule
 include startModule
 include stopModule
+include hotswapWatcher
 include waitExitModule
 
 
@@ -34,12 +35,17 @@ onTerminate() {
     trap '' SIGTERM
     setContainerStatus "stopping"
     echo "Exiting... Cleaning up..."
+    if [ -n "$HOTSWAP_ENABLED" ]; then
+        echo "Stopping watcher..."
+        stopHotswapWatcher || true
+        echo "Watcher stopped."
+    fi
     echo "Stopping modules..."
-    stopModules "$MODULE_DEPLOY_PATH" "$(( SHUTDOWN_TIMEOUT - 10 ))" || :
+    stopModules "$MODULE_DEPLOY_PATH" "$(( SHUTDOWN_TIMEOUT - 10 ))" || true
     echo "All modules stopped."
     echo "Stopping background tasks..."
     # shellcheck disable=SC2046 # Word splitting intentional
-    kill $(jobs -p)
+    kill $(jobs -p) || true
     echo "All background tasks stopped."
     exitImmediately 0 "Goodbye."
 }
@@ -87,7 +93,13 @@ startModules "$MODULE_DEPLOY_PATH" || {
 # ### Wait for containers to finish or for SIGTERM
 setContainerStatus "started"
 
+if [ "$HOTSWAP_ENABLED" ]; then
+    startHotswapWatcher "$MODULE_DEPLOY_PATH"
+fi
 waitExitModules "$MODULE_DEPLOY_PATH" "5"
+if [ "$HOTSWAP_ENABLED" ]; then
+    stopHotswapWatcher
+fi
 
 
 # ### Exit

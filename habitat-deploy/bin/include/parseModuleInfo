@@ -15,6 +15,7 @@ HABITAT_INCLUDE[$(basename "${BASH_SOURCE[0]}" | tr '.-' '_')]="_"
 declare -gA MODULE_REPOS
 declare -gA MODULE_DIRS
 declare -gA MODULE_HOTSWAP_ENABLED
+HOTSWAP_ENABLED=""
 
 
 # Public Functions
@@ -49,6 +50,11 @@ parseModuleInfo() {
         # shellcheck disable=SC2034  # Scoped outside included function
         MODULE_DIRS[$moduleShortName]="$(basename "$(git ls-remote --get-url "$moduleRepoUrl")" .git)"
         # shellcheck disable=SC2034  # Scoped outside included function
-        MODULE_HOTSWAP_ENABLED[$moduleShortName]="$({ inArray "$moduleShortName" "${tmp_hotswap_enabled[@]}" && echo "yes"; } || echo "no")"
+        if inArray "$moduleShortName" "${tmp_hotswap_enabled[@]}"; then
+            MODULE_HOTSWAP_ENABLED[$moduleShortName]="yes"
+            HOTSWAP_ENABLED="_"
+        else
+            MODULE_HOTSWAP_ENABLED[$moduleShortName]="no"
+        fi
     done
 }

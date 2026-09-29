@@ -12,27 +12,8 @@ HABITAT_INCLUDE[$(basename "${BASH_SOURCE[0]}" | tr '.-' '_')]="_"
 
 # Public Functions
 
-prepEnvironment() {
-    # WARNING: Side-effects will modify environment, only call from within subshell
-    # Args
-    local moduleNameUpper
-    moduleNameUpper="${1^^}"
+clearDeploymentEnvironment() {
     # Body
-    while IFS='=' read -r -d '' n v; do
-        if echo "$n" | grep -q '^HABITAT_'; then
-            echo "$n" | grep -q '^HABITAT_MODULE_' && continue
-            export "${n#"HABITAT_"}"="$v"
-            unset -v "$n"
-        fi
-    done < <(env -0)
-    while IFS='=' read -r -d '' n v; do
-        if echo "$n" | grep -q '^HABITAT_MODULE_'; then
-            if echo "$n" | grep -q "^HABITAT_MODULE_${moduleNameUpper}_"; then
-                export "${n#"HABITAT_MODULE_${moduleNameUpper}_"}"="$v"
-            fi
-            unset -v "$n"
-        fi
-    done < <(env -0)
     unset "PROJECT_NAME"
     unset "NETWORK_POOL"
     unset "MODULE_DEPLOY_PATH"
@@ -45,4 +26,41 @@ prepEnvironment() {
     unset "UPGRADE_MODULES_FORCE_BUILD"
     unset "UPGRADE_MODULES_SEQUENTIAL"
     unset "SHUTDOWN_TIMEOUT"
+}
+
+exportSharedEnvironment() {
+    # Body
+    while IFS='=' read -r -d '' n v; do
+        if echo "$n" | grep -q '^HABITAT_'; then
+            echo "$n" | grep -q '^HABITAT_MODULE_' && continue
+            export "${n#"HABITAT_"}"="$v"
+            unset -v "$n"
+        fi
+    done < <(env -0)
+}
+
+exportModuleEnvironment() {
+    # Args
+    local moduleNameUpper
+    moduleNameUpper="${1^^}"
+    # Body
+    while IFS='=' read -r -d '' n v; do
+        if echo "$n" | grep -q '^HABITAT_MODULE_'; then
+            if echo "$n" | grep -q "^HABITAT_MODULE_${moduleNameUpper}_"; then
+                export "${n#"HABITAT_MODULE_${moduleNameUpper}_"}"="$v"
+            fi
+            unset -v "$n"
+        fi
+    done < <(env -0)
+}
+
+prepEnvironment() {
+    # WARNING: Side-effects will modify environment, only call from within subshell
+    # Args
+    local moduleName
+    moduleName="$1"
+    # Body
+    exportSharedEnvironment
+    [ -n "$moduleName" ] && exportModuleEnvironment "$moduleName"
+    clearDeploymentEnvironment
 }
