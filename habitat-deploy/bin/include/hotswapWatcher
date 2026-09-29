@@ -70,7 +70,7 @@ startHotswapWatcher() {
                 [ "$line" == "none of the selected services is configured for watch, consider setting a 'develop' section" ];
             } && continue
             echo "$line"
-        done
+        done || true
         echo "Stopped watcher for modules: $(printf "%s, " "${moduleList[@]}" | sed 's/, $//')"
     ) &
     HOTSWAP_WATCHER_PID="$!"
