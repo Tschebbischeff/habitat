@@ -47,11 +47,11 @@ startHotswapWatcher() {
     [ -z "$HOTSWAP_WATCHER_PID" ] || return 1
     for moduleName in "${moduleList[@]}"; do
         moduleDir="${MODULE_DIRS[$moduleName]:-}"
-        serviceNames+=(
+        mapfile -t -O "$({ [[ -v serviceNames ]] && echo "${#serviceNames[@]}"; } || echo "0")" serviceNames < <(
             docker compose \
-                -f "./$moduleDir/compose.yml" \
+                -f "$moduleWorkdir/$moduleDir/compose.yml" \
                 --progress plain \
-            config --services
+            config --services 2>/dev/null
         )
         composeArgs+=("-f" "./$moduleDir/compose.yml")
     done
