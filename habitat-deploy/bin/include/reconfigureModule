@@ -40,11 +40,8 @@ reconfigureModule() {
     [ -n "$moduleDir" ] || { echo "Missing metadata for module '$moduleName'."; return 1; }
     # Body
     (
-        [ "${MODULE_HOTSWAP_ENABLED[$moduleName]}" == "yes" ] || {
-            echo "Cannot reconfigure '$moduleName', add to HOTSWAP_ENABLED list to enable."
-            exit 1
-        }
         cd "$moduleWorkdir"
+        [ -f "$HABITAT_RUN_DIR/APP_SESSION_ID.txt" ] && rm "$HABITAT_RUN_DIR/APP_SESSION_ID.txt"
         prepEnvironment "$moduleName"
         echo "Reconfiguring '$moduleName' ..."
         docker compose \
@@ -65,19 +62,12 @@ reconfigureModules() {
     # Args
     local moduleWorkdir
     moduleWorkdir="$1"; shift
-    declare -a moduleList
-    while [ "$#" -gt 0 ]; do
-        [ "$1" == "--" ] && break
-        moduleList+=("$1")
-        shift
-    done
-    if [[ ! -v "moduleList" ]]; then
-        moduleList=("${!MODULE_DIRS[@]}")
-    fi
     # Vars
     local exitCode moduleName jobPID
     declare -A moduleByPID
+    declare -a moduleList
     exitCode="0"
+    moduleList=("${!MODULE_DIRS[@]}")
     # Body
     echo "Reconfiguring modules: $(printf "%s, " "${moduleList[@]}" | sed 's/, $//')"
     for moduleName in "${moduleList[@]}"; do
