@@ -64,15 +64,16 @@ reconfigureModules() {
     local moduleWorkdir
     moduleWorkdir="$1"; shift
     # Vars
-    local exitCode moduleName jobPID
+    local exitCode moduleName jobPID sessionId
     declare -A moduleByPID
     declare -a moduleList
     exitCode="0"
     moduleList=("${!MODULE_DIRS[@]}")
+    sessionId="$(cat "/proc/sys/kernel/random/uuid")"
     # Body
     echo "Reconfiguring modules: $(printf "%s, " "${moduleList[@]}" | sed 's/, $//')"
     for moduleName in "${moduleList[@]}"; do
-        reconfigureModule "$moduleWorkdir" "$moduleName" "$(cat "/proc/sys/kernel/random/uuid")" &
+        reconfigureModule "$moduleWorkdir" "$moduleName" "$sessionId" &
         moduleByPID[$!]="$moduleName"
     done
     # shellcheck disable=SC2046 # Word splitting intentional
