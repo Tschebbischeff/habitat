@@ -31,9 +31,10 @@ EOF
 
 reconfigureModule() {
     # Args
-    local moduleWorkdir moduleName
+    local moduleWorkdir moduleName sessionId
     moduleWorkdir="$1"; shift
     moduleName="$1"; shift
+    { [[ -v "1" ]] && sessionId="$1"; } || sessionId="$(cat "$HABITAT_RUN_DIR/APP_SESSION_ID.txt")"
     # Vars
     local moduleDir
     moduleDir="${MODULE_DIRS[$moduleName]:-}"
@@ -41,8 +42,8 @@ reconfigureModule() {
     # Body
     (
         cd "$moduleWorkdir"
-        [ -f "$HABITAT_RUN_DIR/APP_SESSION_ID.txt" ] && rm "$HABITAT_RUN_DIR/APP_SESSION_ID.txt"
         prepEnvironment "$moduleName"
+        export APP_SESSION_ID="$sessionId"
         echo "Reconfiguring '$moduleName' ..."
         docker compose \
             -f "./$moduleDir/compose.yml" \
@@ -71,7 +72,7 @@ reconfigureModules() {
     # Body
     echo "Reconfiguring modules: $(printf "%s, " "${moduleList[@]}" | sed 's/, $//')"
     for moduleName in "${moduleList[@]}"; do
-        reconfigureModule "$moduleWorkdir" "$moduleName" &
+        reconfigureModule "$moduleWorkdir" "$moduleName" "$(cat "/proc/sys/kernel/random/uuid")" &
         moduleByPID[$!]="$moduleName"
     done
     # shellcheck disable=SC2046 # Word splitting intentional
