@@ -15,7 +15,6 @@ HABITAT_INCLUDE[$(basename "${BASH_SOURCE[0]}" | tr '.-' '_')]="_"
 declare -gA MODULE_REPOS
 declare -gA MODULE_DIRS
 declare -gA MODULE_HOTSWAP_ENABLED
-MODULE_HOTSWAP_ENABLED[""]="no"
 
 
 # Public Functions
@@ -52,7 +51,6 @@ parseModuleInfo() {
         # shellcheck disable=SC2034  # Scoped outside included function
         if inArray "$moduleShortName" "${tmp_hotswap_enabled[@]}"; then
             MODULE_HOTSWAP_ENABLED[$moduleShortName]="yes"
-            MODULE_HOTSWAP_ENABLED[""]="yes"
         else
             MODULE_HOTSWAP_ENABLED[$moduleShortName]="no"
         fi
