@@ -45,7 +45,7 @@ onTerminate() {
     echo "All modules stopped."
     echo "Stopping background tasks..."
     # shellcheck disable=SC2046 # Word splitting intentional
-    kill $(jobs -p) || true
+    kill $(jobs -p) &>/dev/null || true
     echo "All background tasks stopped."
     exitImmediately 0 "Goodbye."
 }

@@ -38,7 +38,7 @@ onTerminate() {
     [ -f "$HABITAT_RUN_DIR/.restarting" ] && rm "$HABITAT_RUN_DIR/.restarting"
     echo "Stopping background tasks..."
     # shellcheck disable=SC2046 # Word splitting intentional
-    kill $(jobs -p)
+    kill $(jobs -p) &>/dev/null || true
     echo "All background tasks stopped."
     exitImmediately 0 "Goodbye."
 }
