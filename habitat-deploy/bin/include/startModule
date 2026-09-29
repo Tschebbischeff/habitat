@@ -16,6 +16,17 @@ include prepEnvironment
 include parseModuleInfo
 
 
+# Constants
+
+START_LOG_BLACKLIST="$(cat <<EOF | sed -E ':a; N; $!ba; s/\n//g'
+^.*(
+level=warning msg="(Found orphan containers.*|secret file .* does not exist)"
+|
+Network ${HABITAT_APP_NAME_HOST}_internal Error Error response from daemon: network with name ${HABITAT_APP_NAME_HOST}_internal already exists
+)$
+EOF
+)"
+
 # Public Functions
 
 startModule() {
@@ -39,7 +50,7 @@ startModule() {
             --pull never \
             --no-build \
             -d \
-        2> >(grep -Pv '^.*level=warning msg="(Found orphan containers.*|secret file .* does not exist)"$' >&2)
+        2> >(grep -Pv "$START_LOG_BLACKLIST" >&2)
         exit "$?"
     ) || return "$?"
     return 0

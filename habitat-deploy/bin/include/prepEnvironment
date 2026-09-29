@@ -10,6 +10,11 @@ set -euo pipefail
 HABITAT_INCLUDE[$(basename "${BASH_SOURCE[0]}" | tr '.-' '_')]="_"
 
 
+# Include other Modules
+
+include parseModuleInfo
+
+
 # Public Functions
 
 clearDeploymentEnvironment() {
@@ -30,6 +35,11 @@ clearDeploymentEnvironment() {
 
 exportSharedEnvironment() {
     # Body
+    # shellcheck disable=SC2155  # Return value is of no interest
+    export HABITAT_APP_MODULES="$(printf ',%s' "${!MODULE_REPOS[@]}" | grep -Po '^,\K.*')"
+    [ -f "$HABITAT_RUN_DIR/APP_SESSION_ID.txt" ] || cat "/proc/sys/kernel/random/uuid" >"$HABITAT_RUN_DIR/APP_SESSION_ID.txt"
+    # shellcheck disable=SC2155  # Return value is of no interest
+    export HABITAT_APP_SESSION_ID="$(cat "$HABITAT_RUN_DIR/APP_SESSION_ID.txt")"
     while IFS='=' read -r -d '' n v; do
         if echo "$n" | grep -q '^HABITAT_'; then
             echo "$n" | grep -q '^HABITAT_MODULE_' && continue

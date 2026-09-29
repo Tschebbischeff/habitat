@@ -55,11 +55,6 @@ trap onTerminate SIGTERM
 setContainerStatus "init"
 
 parseModuleInfo "$MODULE_LIST" "$HOTSWAP_ENABLED"
-# shellcheck disable=SC2155  # Return value is of no interest
-export HABITAT_APP_MODULES="$(printf ',%s' "${!MODULE_REPOS[@]}" | grep -Po '^,\K.*')"
-# shellcheck disable=SC2155  # Return value is of no interest
-export HABITAT_APP_SESSION_ID="$(cat "/proc/sys/kernel/random/uuid")"
-echo "$HABITAT_APP_SESSION_ID" >"$HABITAT_RUN_DIR/APP_SESSION_ID.txt"
 
 
 # ### Clone and/or Update modules
@@ -93,11 +88,11 @@ startModules "$MODULE_DEPLOY_PATH" || {
 # ### Wait for containers to finish or for SIGTERM
 setContainerStatus "started"
 
-if [ "$HOTSWAP_ENABLED" ]; then
+if [ -n "$HOTSWAP_ENABLED" ]; then
     startHotswapWatcher "$MODULE_DEPLOY_PATH"
 fi
 waitExitModules "$MODULE_DEPLOY_PATH" "5"
-if [ "$HOTSWAP_ENABLED" ]; then
+if [ -n "$HOTSWAP_ENABLED" ]; then
     stopHotswapWatcher
 fi
 
