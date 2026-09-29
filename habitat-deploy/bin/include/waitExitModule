@@ -98,6 +98,7 @@ waitExitModule() {
             exitCode="$?"
             exitedOnce="_"
             timeout="$restartTimeout"
+            [ -f "$HABITAT_RUN_DIR/.stopping.$moduleName" ] && break
             if [ -f "$HABITAT_RUN_DIR/.restarting" ]; then
                 timeout="300"
                 echo "Intentional restart detected, waiting ${timeout}s for '$moduleName' to restart..."

@@ -41,6 +41,7 @@ startModule() {
     # Body
     (
         cd "$moduleWorkdir"
+        [ -f "$HABITAT_RUN_DIR/.stopping.$moduleName" ] && rm "$HABITAT_RUN_DIR/.stopping.$moduleName"
         prepEnvironment "$moduleName"
         echo "Starting '$moduleName' ..."
         docker compose \
