@@ -44,7 +44,6 @@ startHotswapWatcher() {
     declare -a composeArgs serviceNames
     # Body
     [ -z "$HOTSWAP_WATCHER_PID" ] || return 1
-    echo "Starting watcher for modules: $(printf "%s, " "${moduleList[@]}" | sed 's/, $//')"
     for moduleName in "${moduleList[@]}"; do
         moduleDir="${MODULE_DIRS[$moduleName]:-}"
         serviceNames+=(
@@ -58,6 +57,7 @@ startHotswapWatcher() {
     (
         cd "$moduleWorkdir"
         prepEnvironment ""
+        echo "Starting watcher for modules: $(printf "%s, " "${moduleList[@]}" | sed 's/, $//')"
         # shellcheck disable=SC2046 # Word splitting intentional
         docker compose \
             "${composeArgs[@]}" \
@@ -71,6 +71,7 @@ startHotswapWatcher() {
             } && continue
             echo "$line"
         done
+        echo "Stopped watcher for modules: $(printf "%s, " "${moduleList[@]}" | sed 's/, $//')"
     ) &
     HOTSWAP_WATCHER_PID="$!"
     return 0
