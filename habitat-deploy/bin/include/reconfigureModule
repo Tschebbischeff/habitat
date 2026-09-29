@@ -70,6 +70,7 @@ reconfigureModules() {
     exitCode="0"
     moduleList=("${!MODULE_DIRS[@]}")
     sessionId="$(cat "/proc/sys/kernel/random/uuid")"
+    echo "$sessionId" >"$HABITAT_RUN_DIR/APP_SESSION_ID.txt"
     # Body
     echo "Reconfiguring modules: $(printf "%s, " "${moduleList[@]}" | sed 's/, $//')"
     for moduleName in "${moduleList[@]}"; do
