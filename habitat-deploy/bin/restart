@@ -10,6 +10,7 @@ include parseModuleInfo
 include updateOrInitModule
 include upgradeModule
 include startModule
+include reconfigureModule
 include parseArgs
 
 
@@ -61,7 +62,7 @@ fi
 
 # ### Pull and build if needed and/ or enabled
 
-if [ -n "$ARGS_UPGRADE" ]; then
+if [ -n "$ARGS_UPGRADE" ] || [ -n "$ARGS_HOTSWAP" ]; then
     upgradeModules "$MODULE_DEPLOY_PATH" "$UPGRADE_MODULES" "$UPGRADE_MODULES_FORCE_BUILD" "$UPGRADE_MODULES_SEQUENTIAL" "${ARGS_MODULES[@]}" || {
         echo "Some pull and/ or build operations failed, see logs above."
         exit 1
@@ -71,15 +72,18 @@ fi
 
 # ### Start modules
 
-date +%s >"$HABITAT_RUN_DIR/.restarting"
 if [ -z "$ARGS_HOTSWAP" ]; then
+    date +%s >"$HABITAT_RUN_DIR/.restarting"
     startModules "$MODULE_DEPLOY_PATH" "${ARGS_MODULES[@]}" || {
         echo "Some start operations failed, see logs above."
         exit 1
     }
+    rm "$HABITAT_RUN_DIR/.restarting"
 else
-    : # TODO: Only restart config services, hotswapping other things works through docker's watch mode and is defined by services
+    reconfigureModules "$MODULE_DEPLOY_PATH" "${ARGS_MODULES[@]}" || {
+        echo "Some reconfiguration operations failed, see logs above."
+        exit 1
+    }
 fi
-rm "$HABITAT_RUN_DIR/.restarting"
 
 exitImmediately
