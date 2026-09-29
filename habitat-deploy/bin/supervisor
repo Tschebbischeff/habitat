@@ -88,11 +88,11 @@ startModules "$MODULE_DEPLOY_PATH" || {
 # ### Wait for containers to finish or for SIGTERM
 setContainerStatus "started"
 
-if [ -n "$HOTSWAP_ENABLED" ]; then
+if [ "${MODULE_HOTSWAP_ENABLED[""]}" == "yes" ]; then
     startHotswapWatcher "$MODULE_DEPLOY_PATH"
 fi
 waitExitModules "$MODULE_DEPLOY_PATH" "5"
-if [ -n "$HOTSWAP_ENABLED" ]; then
+if [ "${MODULE_HOTSWAP_ENABLED[""]}" == "yes" ]; then
     stopHotswapWatcher
 fi
 

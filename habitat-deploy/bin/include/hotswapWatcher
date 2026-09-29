@@ -35,7 +35,7 @@ startHotswapWatcher() {
     done
     if [[ ! -v "moduleList" ]]; then
         for moduleName in "${!MODULE_HOTSWAP_ENABLED[@]}"; do
-            [ "${MODULE_HOTSWAP_ENABLED[$moduleName]}" == "yes" ] && \
+            [ -n "$moduleName" ] && [ "${MODULE_HOTSWAP_ENABLED[$moduleName]}" == "yes" ] && \
                 moduleList+=("$moduleName")
         done
     fi
@@ -43,6 +43,7 @@ startHotswapWatcher() {
     local moduleDir
     declare -a composeArgs serviceNames
     # Body
+    [[ -v "moduleList" ]] || return 0
     [ -z "$HOTSWAP_WATCHER_PID" ] || return 1
     for moduleName in "${moduleList[@]}"; do
         moduleDir="${MODULE_DIRS[$moduleName]:-}"
