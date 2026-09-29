@@ -82,7 +82,7 @@ startHotswapWatcher() {
 stopHotswapWatcher() {
     # Body
     [ -n "$HOTSWAP_WATCHER_PID" ] || return 1
-    { kill "$HOTSWAP_WATCHER_PID" && wait "$HOTSWAP_WATCHER_PID"; } || true
+    { kill "$HOTSWAP_WATCHER_PID" &>/dev/null && wait "$HOTSWAP_WATCHER_PID"; } || true
     HOTSWAP_WATCHER_PID=""
     return 0
 }
