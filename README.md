@@ -261,7 +261,8 @@ The following environment variables are commonly used by all modules and can be 
 
 | Name | Description | Example | Default |
 | :-- | :-- | :-- | :-- |
-| `APP_HOST` | The main URL the device will be reachable at. | `my-habitat.example.com` | *Empty* |
+| `APP_HOST` | The main URL the device will be reachable at. | `this-device.my-habitat.example.com` | *Empty* |
+| `APP_AUTH_HOST` | The host at which to reach the authentication server. | `auth-device.my-habitat.example.com` | `authelia.$APP_HOST` |
 | `APP_MODULES` | A comma separated list of module names that are started in the same docker namespace (same project name) as this module. | `path,scent,vista` | *Empty* |
 | `APP_SESSION_ID` | A session ID used for synchronization of configuration between modules, should change every time all modules are restarted in unison and remain unchanged if a single module is restarted without being updated. | `$(cat /proc/sys/kernel/random/uuid)` | *Empty* |
 | `APP_NETWORK_POOL` | The pool of IP addresses for the module containers, must match pool of all other modules in the same application. | `172.19.0.0/16` | `172.18.0.0/16` |
