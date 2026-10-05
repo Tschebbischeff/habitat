@@ -15,6 +15,7 @@ currentStatus="$(getContainerStatus)"
 [ "$currentStatus" == "update" ] && exit 0
 [ "$currentStatus" == "upgrade" ] && exit 0
 [ "$currentStatus" == "starting" ] && exit 0
+[ "$currentStatus" == "partially-started" ] && exit 0
 [ "$currentStatus" == "started" ] && exit 0
 
 exit 2
